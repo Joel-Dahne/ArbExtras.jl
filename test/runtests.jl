@@ -1,4 +1,4 @@
-using ArbExtras, Test
+using Arblib, ArbExtras, Test
 
 @testset "ArbExtras" begin
 
