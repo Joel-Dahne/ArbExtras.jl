@@ -39,6 +39,28 @@ function check_interval(f, a::Arf, b::Arf; check_unique::Bool = true)
     end
 end
 
+function check_interval(p::ArbPoly, a::Arf, b::Arf; check_unique::Bool = true)
+    x = Arb((a, b))
+
+    check_unique || Arblib.contains_zero(p(x)), false
+
+    px, dpx = Arblib.evaluate2(p, x)
+
+    Arblib.contains_zero(px) || return false, false
+
+    a_sign = Arblib.sgn_nonzero(p(Arb(a)))
+    b_sign = Arblib.sgn_nonzero(p(Arb(b)))
+
+    if a_sign * b_sign < 0
+        unique = !Arblib.contains_zero(dpx)
+        return true, unique
+    elseif a_sign * b_sign > 0
+        maybe = Arblib.contains_zero(dpx)
+        return maybe, false
+    else
+        return true, false
+    end
+end
 
 """
     isolateroots(f, a::Arf, b::Arf; depth = 10, check_unique = true)
@@ -70,7 +92,8 @@ The function `f` should support evaluation on both `Arb` and
 `ArbSeries` and should return an enclosure of the result in both
 cases. The evaluation on `ArbSeries` is done to compute the derivative
 to check uniqueness, this can be skipped by setting `check_unique =
-false`, see below.
+false`, see below. Alternatively `f` can be an `ArbPoly`, in which
+case some optimizations are done.
 
 If `check_unique = false` then don't check if roots are unique. In
 this case `flags` will always be false and it will simply continue to
