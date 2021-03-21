@@ -91,13 +91,13 @@
     end
 end
 
-@testset "isolateroots" begin
+@testset "isolate_roots" begin
     @testset "function" begin
         f = x -> sin(π * x / 2)
         a = -9.5
         b = 19.5
         roots = -8:2:18
-        found, flags = ArbExtras.isolateroots(f, Arf(a), Arf(b))
+        found, flags = ArbExtras.isolate_roots(f, Arf(a), Arf(b))
 
         # Check that all roots are accounted for
         found_balls = Arb.(found)
@@ -114,7 +114,7 @@ end
         p = Arblib.fromroots(ArbPoly, roots)
         a = -10
         b = 20
-        found, flags = ArbExtras.isolateroots(p, Arf(a), Arf(b), depth = 15)
+        found, flags = ArbExtras.isolate_roots(p, Arf(a), Arf(b), depth = 15)
 
         # Check that all roots are accounted for
         found_balls = Arb.(found)

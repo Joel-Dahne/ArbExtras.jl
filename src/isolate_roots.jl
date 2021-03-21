@@ -13,7 +13,7 @@ If `check_unique = false` then don't check for uniqueness, `unique`
 will always be `false` in this case.
 
 The function `f` should satisfy the same properties as for
-[`isolateroots`](@ref).
+[`isolate_roots`](@ref).
 
 FUTURE WORK:
 - Take values on endpoints as arguments to avoid having to compute
@@ -63,7 +63,7 @@ function check_interval(p::ArbPoly, a::Arf, b::Arf; check_unique::Bool = true)
 end
 
 """
-    isolateroots(f, a::Arf, b::Arf; depth = 10, check_unique = true)
+    isolate_roots(f, a::Arf, b::Arf; depth = 10, check_unique = true)
 
 Isolate the roots of `f` on the interval `[a, b]`.
 
@@ -114,7 +114,7 @@ FUTURE WORK:
   to parallelize.
 
 """
-function isolateroots(f, a::Arf, b::Arf; depth::Integer = 10, check_unique::Bool = true)
+function isolate_roots(f, a::Arf, b::Arf; depth::Integer = 10, check_unique::Bool = true)
     if a > b
         throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
     end

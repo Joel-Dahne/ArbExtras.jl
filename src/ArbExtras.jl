@@ -2,7 +2,7 @@ module ArbExtras
 
 using Arblib
 
-include("isolateroots.jl")
+include("isolate_roots.jl")
 
 greet() = print("Hello World!")
 
