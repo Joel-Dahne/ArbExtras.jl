@@ -42,7 +42,7 @@ end
 function check_interval(p::ArbPoly, a::Arf, b::Arf; check_unique::Bool = true)
     x = Arb((a, b))
 
-    check_unique || Arblib.contains_zero(p(x)), false
+    check_unique || return Arblib.contains_zero(p(x)), false
 
     px, dpx = Arblib.evaluate2(p, x)
 

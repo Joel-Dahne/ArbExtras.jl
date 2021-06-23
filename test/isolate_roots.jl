@@ -43,6 +43,20 @@
 
         # Zero of higher order
         @test ArbExtras.check_interval(x -> x^2, Arf(-eps()), Arf(eps())) == (true, false)
+
+        # check_unique = false
+        @test ArbExtras.check_interval(sin, Arf(-1), Arf(1), check_unique = false) ==
+              (true, false)
+        @test ArbExtras.check_interval(cos, Arf(-1), Arf(1), check_unique = false) ==
+              (false, false)
+        @test ArbExtras.check_interval(sin, Arf(-1), Arf(4), check_unique = false) ==
+              (true, false)
+        @test ArbExtras.check_interval(
+            x -> x^2,
+            Arf(-eps()),
+            Arf(eps()),
+            check_unique = false,
+        ) == (true, false)
     end
 
     @testset "ArbPoly" begin
@@ -88,6 +102,24 @@
             Arf(-1),
             Arf(1),
         ) == (true, false)
+
+        # check_unique = false
+        @test ArbExtras.check_interval(
+            Arblib.fromroots(ArbPoly, [0]),
+            Arf(-1),
+            Arf(1),
+            check_unique = false,
+        ) == (true, false)
+        @test ArbExtras.check_interval(ArbPoly(1), Arf(-1), Arf(1), check_unique = false) ==
+              (false, false)
+        @test ArbExtras.check_interval(
+            Arblib.fromroots(ArbPoly, [-0.5, 0.5]),
+            Arf(-1),
+            Arf(1),
+            check_unique = false,
+        ) == (true, false)
+        @test ArbExtras.check_interval(ArbPoly(0), Arf(-1), Arf(1), check_unique = false) ==
+              (true, false)
     end
 end
 
