@@ -124,7 +124,7 @@
 end
 
 @testset "isolate_roots" begin
-    @testset "function" begin
+    @testset "sin(πx/2)" begin
         f = x -> sin(π * x / 2)
         a = -9.5
         b = 19.5
@@ -139,6 +139,39 @@ end
         # indeed are
         @test all(flags)
         @test all(isone(count(contains(root), found_balls)) for root in roots)
+    end
+
+    @testset "sin(1/x)" begin
+        f = x -> sin(1 / x)
+        a = 0
+        b = 1
+        found1, flags1 = ArbExtras.isolate_roots(f, Arf(a), Arf(b))
+        found2, flags2 = ArbExtras.isolate_roots(f, Arf(a), Arf(b), depth = 15)
+
+        # Check that the interval containing zero is included and that
+        # it's smaller if we bisect more
+        @test !flags1[1] && iszero(found1[1][1])
+        @test !flags2[1] && iszero(found2[1][1])
+        @test found1[1][2] > found2[1][2]
+
+        # Check that we find isolate more zeros with higher depth
+        @test sum(flags1) < sum(flags2)
+    end
+
+    # Check that the derivative is not computed when check_unique is
+    # false and that it splits the expected number of times
+    @testset "check_unique = false" begin
+        depth = 10
+        found, flags = ArbExtras.isolate_roots(
+            x -> Arb(0),
+            Arf(0),
+            Arf(1),
+            check_unique = false,
+            depth = depth,
+        )
+        @test length(found) == 2^(depth = 10 - 1)
+        @test !any(flags)
+        @test all(found[i][2] == found[i+1][1] for i = 1:length(found)-1)
     end
 
     @testset "ArbPoly" begin
@@ -156,5 +189,19 @@ end
         # indeed are
         @test all(flags)
         @test all(isone(count(contains(root), found_balls)) for root in roots)
+    end
+
+    @testset "ArbPoly - check_unique = false" begin
+        depth = 10
+        found, flags = ArbExtras.isolate_roots(
+            ArbPoly(0),
+            Arf(0),
+            Arf(1),
+            check_unique = false,
+            depth = depth,
+        )
+        @test length(found) == 2^(depth = 10 - 1)
+        @test !any(flags)
+        @test all(found[i][2] == found[i+1][1] for i = 1:length(found)-1)
     end
 end
