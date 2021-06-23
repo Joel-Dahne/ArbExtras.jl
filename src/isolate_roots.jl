@@ -63,7 +63,7 @@ function check_interval(p::ArbPoly, a::Arf, b::Arf; check_unique::Bool = true)
 end
 
 """
-    isolate_roots(f, a::Arf, b::Arf; depth = 10, check_unique = true)
+    isolate_roots(f, a::Arf, b::Arf; depth = 10, check_unique = true, verbose = false)
 
 Isolate the roots of `f` on the interval `[a, b]`.
 
@@ -74,8 +74,8 @@ vector of booleans. The output has the following properties:
   `found`.
 - Subintervals are sorted in increasing order (with no overlap except
   possibly starting and ending with the same point).
-- Subintervals with a flag `true` exactly one (single) root.
-- Subintervals with any other flag may or may not contain roots.
+- Subintervals with a flag `true` has exactly one (simple) root.
+- Subintervals with a flag `false` may or may not contain roots.
 
 If all flags are true then all roots of the function on interval have
 been isolated. If there are output subintervals on which the existence
@@ -102,22 +102,32 @@ benefit to this is that the derivative of `f` doesn't have to be
 computed so it can be used when the function of interest doesn't
 support evaluating derivatives.
 
+If `verbose = true` then output information after each iteration on
+the number of found roots and the number of remaining intervals that
+needs to be split further.
+
 FUTURE WORK:
 - Parallelize.
 - Compute values on endpoints of subintervals once to not have to
   compute them multiple times.
 - Should it use `BitVector` or `Vector{Bool}` for flags?
-- Debug information
 - The current implementation does a breadth-first-search. Consider
   rewriting it to do a depth-first-search instead to reduce memory
   usage in case of many splittings. This might however make it harder
   to parallelize.
-
 """
-function isolate_roots(f, a::Arf, b::Arf; depth::Integer = 10, check_unique::Bool = true)
-    if a > b
-        throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
-    end
+function isolate_roots(
+    f,
+    a::Arf,
+    b::Arf;
+    depth::Integer = 10,
+    check_unique::Bool = true,
+    verbose = false,
+)
+    isfinite(a) && isfinite(b) ||
+        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
+    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+
     if a == b
         if Arblib.contains_zero(f(Arb(a)))
             return [(a, b)], [false]
@@ -144,17 +154,34 @@ function isolate_roots(f, a::Arf, b::Arf; depth::Integer = 10, check_unique::Boo
                 push!(found, interval)
                 push!(flags, true)
             elseif maybe
-                (lower, upper) = interval
-                midpoint = lower + upper
-                midpoint = Arblib.mul_2exp!(midpoint, midpoint, -1)
+                if iterations < depth
+                    (lower, upper) = interval
+                    midpoint = lower + upper
+                    midpoint = Arblib.mul_2exp!(midpoint, midpoint, -1)
 
-                push!(next_intervals, (lower, midpoint))
-                push!(next_intervals, (midpoint, upper))
+                    push!(next_intervals, (lower, midpoint))
+                    push!(next_intervals, (midpoint, upper))
+                else
+                    # If we are on the last iteration don't split the interval
+                    push!(next_intervals, interval)
+                end
             end
         end
 
         intervals = next_intervals
+
+        verbose &&
+            iterations < depth &&
+            @info "isolate_roots iteration: $(lpad(iterations, 2)), " *
+                  "found: $(lpad(length(found), 2)), " *
+                  "remaining intervals: $(length(intervals) ÷ 2)"
     end
+
+    verbose &&
+        iterations == depth &&
+        @info "isolate_roots iteration: $(lpad(iterations, 2)), " *
+              "found: $(lpad(length(found), 2)), " *
+              "remaining intervals: $(length(intervals))"
 
     found = [found; intervals]
     flags = [flags; zeros(Bool, length(intervals))]
