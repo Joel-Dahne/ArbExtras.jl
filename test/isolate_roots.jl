@@ -158,6 +158,13 @@ end
         @test sum(flags1) < sum(flags2)
     end
 
+    @testset "thin interval" begin
+        @test ArbExtras.isolate_roots(sin, Arf(0), Arf(0)) == ([(Arf(0), Arf(0))], [true])
+        @test ArbExtras.isolate_roots(x -> sin(x) - sin(x), Arf(1), Arf(1)) ==
+              ([(Arf(1), Arf(1))], [false])
+        @test all(isempty.(ArbExtras.isolate_roots(cos, Arf(0), Arf(0))))
+    end
+
     # Check that the derivative is not computed when check_unique is
     # false and that it splits the expected number of times
     @testset "check_unique = false" begin

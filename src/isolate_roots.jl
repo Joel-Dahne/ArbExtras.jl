@@ -129,8 +129,9 @@ function isolate_roots(
     a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
 
     if a == b
-        if Arblib.contains_zero(f(Arb(a)))
-            return [(a, b)], [false]
+        fa = f(Arb(a))
+        if Arblib.contains_zero(fa)
+            return [(a, b)], [iszero(fa)]
         else
             return Vector{NTuple{2,Arf}}(), Vector{Bool}()
         end
