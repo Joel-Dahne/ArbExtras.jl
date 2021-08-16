@@ -1,5 +1,5 @@
 """
-    extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, point_value_min, point_value_max, maxevals, depth, verbose)
+    extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, point_value_min, point_value_max, maxevals, depth, threaded, verbose)
 
 Compute both the minimum and maximum of the function `f` on the
 interval `[a, b]` and return them as a 2-tuple.
@@ -35,6 +35,9 @@ The arguments `maxevals` and `depth` can be used to limit the number
 of function evaluations and the number of bisections of the interval
 respectively.
 
+If `threaded = true` then evaluate `f` in parallel on the intervals
+using [`Threads.@threads`](@ref).
+
 If `verbose = true` then output information about the process.
 
 TODO: Currently this always computes both minimum and maximum on all
@@ -54,6 +57,7 @@ function extrema_enclosure(
     point_value_max::Arb = Arb(-Inf, prec = precision(a)),
     maxevals::Integer = 1000,
     depth::Integer = 20,
+    threaded = false,
     verbose = false,
 )
     isfinite(a) && isfinite(b) ||
@@ -87,15 +91,30 @@ function extrema_enclosure(
         evals += length(intervals)
 
         # Compute enclosure of extrema on each remaining interval
+        values_min = similar(intervals, Arb)
+        values_max = similar(intervals, Arb)
         if degree < 0
-            values_min = values_max = maybe_abs.(f.(Arb.(intervals)))
+            if threaded
+                Threads.@threads for i in eachindex(intervals)
+                    values_min[i] = values_max[i] = maybe_abs(f(Arb(intervals[i])))
+                end
+            else
+                for i in eachindex(intervals)
+                    values_min[i] = values_max[i] = maybe_abs(f(Arb(intervals[i])))
+                end
+            end
         else
-            values_min = similar(intervals, Arb)
-            values_max = similar(intervals, Arb)
             point_values = similar(values_min)
-            for (i, (a, b)) in enumerate(intervals)
-                values_min[i], values_max[i], point_values[i] =
-                    extrema_series(f, a, b; degree, abs_value)
+            if threaded
+                Threads.@threads for i in eachindex(intervals)
+                    values_min[i], values_max[i], point_values[i] =
+                        extrema_series(f, intervals[i]...; degree, abs_value)
+                end
+            else
+                for (i, (a, b)) in enumerate(intervals)
+                    values_min[i], values_max[i], point_values[i] =
+                        extrema_series(f, a, b; degree, abs_value)
+                end
             end
             for point_value in filter(isfinite, point_values)
                 Arblib.min!(point_value_min, point_value_min, point_value)
@@ -212,7 +231,7 @@ function extrema_enclosure(
 end
 
 """
-    minimum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, point_value_min, maxevals, depth, verbose)
+    minimum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, point_value_min, maxevals, depth, threaded, verbose)
 
 Compute the minimum of the function `f` on the interval `[a, b]`.
 
@@ -230,6 +249,7 @@ function minimum_enclosure(
     point_value_min::Arb = Arb(Inf, prec = precision(a)),
     maxevals::Integer = 1000,
     depth::Integer = 20,
+    threaded = false,
     verbose = false,
 )
     isfinite(a) && isfinite(b) ||
@@ -263,13 +283,28 @@ function minimum_enclosure(
         evals += length(intervals)
 
         # Compute enclosure of minimum on each remaining interval
+        values = similar(intervals, Arb)
         if degree < 0
-            values = maybe_abs.(f.(Arb.(intervals)))
+            if threaded
+                Threads.@threads for i in eachindex(intervals)
+                    values[i] = maybe_abs(f(Arb(intervals[i])))
+                end
+            else
+                for i in eachindex(intervals)
+                    values[i] = maybe_abs(f(Arb(intervals[i])))
+                end
+            end
         else
-            values = similar(intervals, Arb)
             point_values = similar(values)
-            for (i, (a, b)) in enumerate(intervals)
-                values[i], point_values[i] = minimum_series(f, a, b; degree, abs_value)
+            if threaded
+                Threads.@threads for i in eachindex(intervals)
+                    values[i], point_values[i] =
+                        minimum_series(f, intervals[i]...; degree, abs_value)
+                end
+            else
+                for (i, (a, b)) in enumerate(intervals)
+                    values[i], point_values[i] = minimum_series(f, a, b; degree, abs_value)
+                end
             end
             for point_value in filter(isfinite, point_values)
                 Arblib.min!(point_value_min, point_value_min, point_value)
@@ -352,7 +387,7 @@ function minimum_enclosure(
 end
 
 """
-    maximum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, point_value_max, maxevals, depth, verbose)
+    maximum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, point_value_max, maxevals, depth, threaded, verbose)
 
 Compute the maximum of the function `f` on the interval `[a, b]`.
 
@@ -370,6 +405,7 @@ function maximum_enclosure(
     point_value_max::Arb = Arb(-Inf, prec = precision(a)),
     maxevals::Integer = 1000,
     depth::Integer = 20,
+    threaded = false,
     verbose = false,
 )
     isfinite(a) && isfinite(b) ||
@@ -398,13 +434,28 @@ function maximum_enclosure(
         evals += length(intervals)
 
         # Compute enclosure of maximum on each remaining interval
+        values = similar(intervals, Arb)
         if degree < 0
-            values = maybe_abs.(f.(Arb.(intervals)))
+            if threaded
+                Threads.@threads for i in eachindex(intervals)
+                    values[i] = maybe_abs(f(Arb(intervals[i])))
+                end
+            else
+                for i in eachindex(intervals)
+                    values[i] = maybe_abs(f(Arb(intervals[i])))
+                end
+            end
         else
-            values = similar(intervals, Arb)
             point_values = similar(values)
-            for (i, (a, b)) in enumerate(intervals)
-                values[i], point_values[i] = maximum_series(f, a, b; degree, abs_value)
+            if threaded
+                Threads.@threads for i in eachindex(intervals)
+                    values[i], point_values[i] =
+                        maximum_series(f, intervals[i]...; degree, abs_value)
+                end
+            else
+                for (i, (a, b)) in enumerate(intervals)
+                    values[i], point_values[i] = maximum_series(f, a, b; degree, abs_value)
+                end
             end
             for point_value in filter(isfinite, point_values)
                 Arblib.max!(point_value_max, point_value_max, point_value)

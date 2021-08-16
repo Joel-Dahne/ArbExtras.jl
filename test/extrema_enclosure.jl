@@ -82,5 +82,49 @@
         @test_throws ArgumentError ArbExtras.extrema_enclosure(identity, Arf(2), Arf(Inf))
         @test_throws ArgumentError ArbExtras.minimum_enclosure(identity, Arf(2), Arf(Inf))
         @test_throws ArgumentError ArbExtras.maximum_enclosure(identity, Arf(2), Arf(Inf))
+
+        # Threading enabled
+        @test Arblib.isequal(
+            ArbExtras.extrema_enclosure(
+                x -> -2x,
+                Arf(2),
+                Arf(3),
+                degree = -1,
+                threaded = true,
+            ),
+            ArbExtras.extrema_enclosure(x -> -2x, Arf(2), Arf(3), degree = -1),
+        )
+        @test Arblib.isequal(
+            ArbExtras.extrema_enclosure(x -> -2x, Arf(2), Arf(3), threaded = true),
+            ArbExtras.extrema_enclosure(x -> -2x, Arf(2), Arf(3)),
+        )
+        @test Arblib.isequal(
+            ArbExtras.minimum_enclosure(
+                x -> -2x,
+                Arf(2),
+                Arf(3),
+                degree = -1,
+                threaded = true,
+            ),
+            ArbExtras.minimum_enclosure(x -> -2x, Arf(2), Arf(3), degree = -1),
+        )
+        @test Arblib.isequal(
+            ArbExtras.minimum_enclosure(x -> -2x, Arf(2), Arf(3), threaded = true),
+            ArbExtras.minimum_enclosure(x -> -2x, Arf(2), Arf(3)),
+        )
+        @test Arblib.isequal(
+            ArbExtras.maximum_enclosure(
+                x -> -2x,
+                Arf(2),
+                Arf(3),
+                degree = -1,
+                threaded = true,
+            ),
+            ArbExtras.maximum_enclosure(x -> -2x, Arf(2), Arf(3), degree = -1),
+        )
+        @test Arblib.isequal(
+            ArbExtras.maximum_enclosure(x -> -2x, Arf(2), Arf(3), threaded = true),
+            ArbExtras.maximum_enclosure(x -> -2x, Arf(2), Arf(3)),
+        )
     end
 end
