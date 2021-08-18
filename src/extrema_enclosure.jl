@@ -76,10 +76,8 @@ function extrema_enclosure(
     # Stores the lower and upper bound of the minimum and the maximum
     # on the parts of the interval which are completed. Initially they
     # are set to the neutral element for minimum.
-    min_low = Arf(Inf, prec = precision(a))
-    min_upp = Arf(Inf, prec = precision(a))
-    max_low = Arf(-Inf, prec = precision(a))
-    max_upp = Arf(-Inf, prec = precision(a))
+    min_low, min_upp = Arf(Inf, prec = precision(a)), Arf(Inf, prec = precision(a))
+    max_low, max_upp = Arf(-Inf, prec = precision(a)), Arf(-Inf, prec = precision(a))
 
     iterations = 0
     evals = 0
@@ -126,8 +124,8 @@ function extrema_enclosure(
         values_max_low = similar(values_max, Arf)
         values_max_upp = similar(values_max, Arf)
         for i in eachindex(intervals)
-            values_min_low[i], values_min_upp[i] = Arblib.getinterval(values_min[i])
-            values_max_low[i], values_max_upp[i] = Arblib.getinterval(values_max[i])
+            values_min_low[i], values_min_upp[i] = getinterval(values_min[i])
+            values_max_low[i], values_max_upp[i] = getinterval(values_max[i])
         end
 
         # Compute current lower and upper bound of extrema on both the
@@ -159,8 +157,8 @@ function extrema_enclosure(
             max_current_upp = Arf(Inf, prec = precision(a))
         end
 
-        min_current_upp = min(min_current_upp, Arblib.ubound(point_value_min))
-        max_current_low = max(max_current_low, Arblib.lbound(point_value_max))
+        min_current_upp = min(min_current_upp, ubound(point_value_min))
+        max_current_low = max(max_current_low, lbound(point_value_max))
 
         # If we are not done split the intervals where extrema could
         # be located and which do not satisfy the tolerance
@@ -259,8 +257,7 @@ function minimum_enclosure(
     # Stores the lower and upper bound of the minimum on the parts of
     # the interval which are completed. Initially they are set to the
     # neutral element for minimum.
-    min_low = Arf(Inf, prec = precision(a))
-    min_upp = Arf(Inf, prec = precision(a))
+    min_low, min_upp = Arf(Inf, prec = precision(a)), Arf(Inf, prec = precision(a))
 
     iterations = 0
     evals = 0
@@ -301,7 +298,7 @@ function minimum_enclosure(
         values_low = similar(values, Arf)
         values_upp = similar(values, Arf)
         for i in eachindex(values)
-            values_low[i], values_upp[i] = Arblib.getinterval(values[i])
+            values_low[i], values_upp[i] = getinterval(values[i])
         end
 
         # Compute current lower and upper bound of minimum on both the
@@ -317,7 +314,7 @@ function minimum_enclosure(
             )
         end
 
-        min_current_upp = min(min_current_upp, Arblib.ubound(point_value_min))
+        min_current_upp = min(min_current_upp, ubound(point_value_min))
 
         # If we are not done split the intervals where minimum could
         # be located and which do not satisfy the tolerance
@@ -401,8 +398,7 @@ function maximum_enclosure(
     # Stores the lower and upper bound of the maximum on the parts of
     # the interval which are completed. Initially they are set to the
     # neutral element for maximum.
-    max_low = Arf(-Inf, prec = precision(a))
-    max_upp = Arf(-Inf, prec = precision(a))
+    max_low, max_upp = Arf(-Inf, prec = precision(a)), Arf(-Inf, prec = precision(a))
 
     iterations = 0
     evals = 0
@@ -443,7 +439,7 @@ function maximum_enclosure(
         values_low = similar(values, Arf)
         values_upp = similar(values, Arf)
         for i in eachindex(values)
-            values_low[i], values_upp[i] = Arblib.getinterval(Arf, values[i])
+            values_low[i], values_upp[i] = getinterval(Arf, values[i])
         end
 
         # Compute current lower and upper bound of maximum on both the
@@ -462,7 +458,7 @@ function maximum_enclosure(
             max_current_upp = Arf(Inf, prec = precision(a))
         end
 
-        max_current_low = max(max_current_low, Arblib.lbound(point_value_max))
+        max_current_low = max(max_current_low, lbound(point_value_max))
 
         # If we are not done split the intervals where maximum could
         # be located and which do not satisfy the tolerance
