@@ -203,9 +203,7 @@ function extrema_enclosure(
                     Arblib.max!(max_upp, max_upp, values_max_upp[i])
                 else
                     # Otherwise split the interval further
-                    midpoint = (intervals[i][1] + intervals[i][2]) / 2
-                    push!(next_intervals, (intervals[i][1], midpoint))
-                    push!(next_intervals, (midpoint, intervals[i][2]))
+                    push!(next_intervals, bisect_interval(intervals[i]...)...)
                 end
             end
         end
@@ -361,9 +359,7 @@ function minimum_enclosure(
                     Arblib.min!(min_upp, min_upp, values_upp[i])
                 else
                     # Otherwise split the interval further
-                    midpoint = (intervals[i][1] + intervals[i][2]) / 2
-                    push!(next_intervals, (intervals[i][1], midpoint))
-                    push!(next_intervals, (midpoint, intervals[i][2]))
+                    push!(next_intervals, bisect_interval(intervals[i]...)...)
                 end
             end
         end
@@ -515,9 +511,7 @@ function maximum_enclosure(
                     Arblib.max!(max_upp, max_upp, values_upp[i])
                 else
                     # Otherwise split the interval further
-                    midpoint = (intervals[i][1] + intervals[i][2]) / 2
-                    push!(next_intervals, (intervals[i][1], midpoint))
-                    push!(next_intervals, (midpoint, intervals[i][2]))
+                    push!(next_intervals, bisect_interval(intervals[i]...)...)
                 end
             end
         end

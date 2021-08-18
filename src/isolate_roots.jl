@@ -156,12 +156,7 @@ function isolate_roots(
                 push!(flags, true)
             elseif maybe
                 if iterations < depth
-                    (lower, upper) = interval
-                    midpoint = lower + upper
-                    midpoint = Arblib.mul_2exp!(midpoint, midpoint, -1)
-
-                    push!(next_intervals, (lower, midpoint))
-                    push!(next_intervals, (midpoint, upper))
+                    push!(next_intervals, bisect_interval(interval...)...)
                 else
                     # If we are on the last iteration don't split the interval
                     push!(next_intervals, interval)
