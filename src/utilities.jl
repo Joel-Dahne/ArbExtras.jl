@@ -47,3 +47,23 @@ function check_tolerance(x::Arb; atol = nothing, rtol = nothing)
         return false
     end
 end
+
+"""
+    check_interval(a::Arf, b::Arf)
+
+Throw an error if `a` and `b` does not define a finite interval `[a,
+b]`. It checks that `a` and `b` are both finite and satisfy `a <= b`.
+"""
+function check_interval(a::Arf, b::Arf)
+    isfinite(a) && isfinite(b) ||
+        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
+    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+end
+
+"""
+    check_interval(Bool, a::Arf, b::Arf)
+
+Return `true` if `a` and `b` defines a finite interval `[a, b]`. It
+checks that `a` and `b` are both finite and satisfy `a <= b`.
+"""
+check_interval(::Type{Bool}, a::Arf, b::Arf) = isfinite(a) && isfinite(b) && a <= b

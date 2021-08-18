@@ -124,9 +124,7 @@ function isolate_roots(
     check_unique::Bool = true,
     verbose = false,
 )
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     if a == b
         fa = f(Arb(a))

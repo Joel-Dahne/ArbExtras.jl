@@ -40,9 +40,7 @@ function extrema_series(
     abs_value = false,
     verbose = false,
 )
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     maybe_abs = abs_value ? abs : identity
 
@@ -130,9 +128,7 @@ function minimum_series(
     abs_value = false,
     verbose = false,
 )
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     maybe_abs = abs_value ? abs : identity
     if a == b
@@ -221,9 +217,7 @@ function maximum_series(
     abs_value = false,
     verbose = false,
 )
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     maybe_abs = abs_value ? abs : identity
 

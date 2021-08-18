@@ -54,9 +54,7 @@ If `verbose = true` then output information about the process.
 TODO: Allow passing arguments to `isolate_roots`?
 """
 function extrema_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbose = false)
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     maybe_abs = abs_value ? abs : identity
 
@@ -202,9 +200,7 @@ Takes the same arguments as [`extrema_polynomial`](@ref). The
 algorithm is also the same except that it only looks for the minimum.
 """
 function minimum_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbose = false)
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     maybe_abs = abs_value ? abs : identity
 
@@ -319,9 +315,7 @@ Takes the same arguments as [`extrema_polynomial`](@ref). The
 algorithm is also the same except that it only looks for the maximum.
 """
 function maximum_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbose = false)
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     maybe_abs = abs_value ? abs : identity
 
