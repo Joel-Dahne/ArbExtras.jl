@@ -162,20 +162,6 @@ function extrema_enclosure(
         min_current_upp = min(min_current_upp, Arblib.ubound(point_value_min))
         max_current_low = max(max_current_low, Arblib.lbound(point_value_max))
 
-        # Check if we have done the maximum number of function
-        # evaluations or reached the maximum depth
-        if evals >= maxevals || iterations >= depth
-            evals >= maxevals &&
-                verbose &&
-                @info "reached maximum number of evaluations $evals >= $maxevals"
-            iterations >= depth && verbose && @info "reached maximum depth $depth"
-            min_low = min_current_low
-            min_upp = min_current_upp
-            max_low = max_current_low
-            max_upp = max_current_upp
-            break
-        end
-
         # If we are not done split the intervals where extrema could
         # be located and which do not satisfy the tolerance
         next_intervals = Vector{eltype(intervals)}()
@@ -203,15 +189,25 @@ function extrema_enclosure(
         end
         intervals = next_intervals
 
-        if isempty(intervals)
-            verbose && @info "no remaining intervals"
-            break
-        end
-
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
               "minimum: $(Float64.((min_current_low, min_current_upp)))" *
               "maximum: $(Float64.((max_current_low, max_current_upp)))"
+
+        isempty(intervals) && break
+
+        # Check if we have done the maximum number of function
+        # evaluations or reached the maximum depth
+        if evals >= maxevals || iterations >= depth
+            if verbose
+                evals >= maxevals &&
+                    @info "reached maximum number of evaluations $evals >= $maxevals"
+                iterations >= depth && @info "reached maximum depth $depth"
+            end
+            min_low, min_upp = min_current_low, min_current_upp
+            max_low, max_upp = max_current_low, max_current_upp
+            break
+        end
     end
 
     res_min = Arb((min_low, min_upp))
@@ -323,18 +319,6 @@ function minimum_enclosure(
 
         min_current_upp = min(min_current_upp, Arblib.ubound(point_value_min))
 
-        # Check if we have done the maximum number of function
-        # evaluations or reached the maximum depth
-        if evals >= maxevals || iterations >= depth
-            evals >= maxevals &&
-                verbose &&
-                @info "reached maximum number of evaluations $evals >= $maxevals"
-            iterations >= depth && verbose && @info "reached maximum depth $depth"
-            min_low = min_current_low
-            min_upp = min_current_upp
-            break
-        end
-
         # If we are not done split the intervals where minimum could
         # be located and which do not satisfy the tolerance
         next_intervals = Vector{eltype(intervals)}()
@@ -355,14 +339,23 @@ function minimum_enclosure(
         end
         intervals = next_intervals
 
-        if isempty(intervals)
-            verbose && @info "no remaining intervals"
-            break
-        end
-
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
               "minimum: $(Float64.((min_current_low, min_current_upp)))"
+
+        isempty(intervals) && break
+
+        # Check if we have done the maximum number of function
+        # evaluations or reached the maximum depth
+        if evals >= maxevals || iterations >= depth
+            if verbose
+                evals >= maxevals &&
+                    @info "reached maximum number of evaluations $evals >= $maxevals"
+                iterations >= depth && @info "reached maximum depth $depth"
+            end
+            min_low, min_upp = min_current_low, min_current_upp
+            break
+        end
     end
 
     res = Arb((min_low, min_upp))
@@ -471,18 +464,6 @@ function maximum_enclosure(
 
         max_current_low = max(max_current_low, Arblib.lbound(point_value_max))
 
-        # Check if we have done the maximum number of function
-        # evaluations or reached the maximum depth
-        if evals >= maxevals || iterations >= depth
-            evals >= maxevals &&
-                verbose &&
-                @info "reached maximum number of evaluations $evals >= $maxevals"
-            iterations >= depth && verbose && @info "reached maximum depth $depth"
-            max_low = max_current_low
-            max_upp = max_current_upp
-            break
-        end
-
         # If we are not done split the intervals where maximum could
         # be located and which do not satisfy the tolerance
         next_intervals = Vector{eltype(intervals)}()
@@ -503,14 +484,23 @@ function maximum_enclosure(
         end
         intervals = next_intervals
 
-        if isempty(intervals)
-            verbose && @info "no remaining intervals"
-            break
-        end
-
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
               "maximum: $(Float64.((max_current_low, max_current_upp)))"
+
+        isempty(intervals) && break
+
+        # Check if we have done the maximum number of function
+        # evaluations or reached the maximum depth
+        if evals >= maxevals || iterations >= depth
+            if verbose
+                evals >= maxevals &&
+                    @info "reached maximum number of evaluations $evals >= $maxevals"
+                iterations >= depth && @info "reached maximum depth $depth"
+            end
+            max_low, max_upp = max_current_low, max_current_upp
+            break
+        end
     end
 
     return Arb((max_low, max_upp))
