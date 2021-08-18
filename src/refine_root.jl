@@ -14,19 +14,17 @@ The function `f` can be either an `ArbPoly` or a regular function. If
 it's a regular function then the derivative is computed using
 `ArbSeries`.
 
-At each iteration it checks if the required tolerance is met. The
-absolute error is given by the diameter of the enclosure and the
-relative error is given by the absolute error divided by the
-enclosure. The default tolerances are `atol = 0` and `rtol =
-4eps(one(root))`.
+At each iteration it checks if the required tolerance is met according
+to [`check_tolerance`](@ref). The default tolerances are `atol = 0`
+and `rtol = 4eps(one(root))`.
 
-If the absolute error improve by at least a factor 1.5 between two
-iterations then it stops early since it's unlikely that further
-iterations would improve the result much. This can for example happen
-when the function is computed with too low precision. This check is
-only done if `min_iterations` have been performed, this is to avoid
-stopping early due to slow convergence in the beginning. To avoid this
-check entirely `min_iterations` can be put to the same as
+If the absolute error does not improve by at least a factor 1.5
+between two iterations then it stops early since it's unlikely that
+further iterations would improve the result much. This can for example
+happen when the function is computed with too low precision. This
+check is only done if `min_iterations` have been performed, this is to
+avoid stopping early due to slow convergence in the beginning. To
+avoid this check entirely `min_iterations` can be put to the same as
 `max_iterations`.
 
 If `strict = true` then only return an enclosure which has been proved
@@ -75,7 +73,7 @@ function refine_root(
 
     verbose && @info "enclosure: $root"
 
-    error_previous = 2Arblib.radius(Arb, root)
+    error_previous = radius(root)
     isproved = false
     for i = 1:max_iterations
         # Compute new enclosure
@@ -106,8 +104,7 @@ function refine_root(
         verbose && @info "enclosure: $root"
 
         # If the result satisfies the required tolerance - break
-        error = 2Arblib.radius(Arb, root)
-        if error <= atol || error / abs(root) <= rtol
+        if check_tolerance(root; atol, rtol)
             verbose && @info "tolerance satisfied"
             break
         end
@@ -115,6 +112,7 @@ function refine_root(
         # If the result did not improve compared to the last iteration
         # and we have performed the minimum number of iterations -
         # break
+        error = radius(root)
         if i >= min_iterations && 1.5error > error_previous
             verbose &&
                 @info "diameter only improved from $error_previous to $error - stopping early"

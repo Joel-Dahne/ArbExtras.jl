@@ -186,12 +186,8 @@ function extrema_enclosure(
             possible_min = values_min_low[i] <= min_current_upp || !isfinite(values_min[i])
             possible_max = max_current_low <= values_max_upp[i] || !isfinite(values_max[i])
             if possible_min || possible_max
-                tol_min = let err = 2Arblib.radius(Arb, values_min[i])
-                    err <= atol || err / abs(values_min[i]) <= rtol
-                end
-                tol_max = let err = 2Arblib.radius(Arb, values_max[i])
-                    err <= atol || err / abs(values_max[i]) <= rtol
-                end
+                tol_min = check_tolerance(values_min[i]; atol, rtol)
+                tol_max = check_tolerance(values_max[i]; atol, rtol)
 
                 if (!possible_min || tol_min) && (!possible_max || tol_max)
                     # If the interval satisfies the tolerance then add
@@ -349,9 +345,7 @@ function minimum_enclosure(
         for i in eachindex(intervals)
             # Check if the minimum could be located in the interval
             if values_low[i] <= min_current_upp || !isfinite(values[i])
-                err = 2Arblib.radius(Arb, values[i])
-
-                if err <= atol || err / abs(values[i]) <= rtol
+                if check_tolerance(values[i]; atol, rtol)
                     # If the interval satisfies the tolerance then add
                     # it to the lower and upper bound of the minimum
                     # for the finished parts of the interval.
@@ -501,9 +495,7 @@ function maximum_enclosure(
         for i in eachindex(intervals)
             # Check if the maximum could be located in the interval
             if max_current_low <= values_upp[i] || !isfinite(values[i])
-                err = 2Arblib.radius(Arb, values[i])
-
-                if err <= atol || err / abs(values[i]) <= rtol
+                if check_tolerance(values[i]; atol, rtol)
                     # If the interval satisfies the tolerance then add
                     # it to the lower and upper bound of the maximum
                     # for the finished parts of the interval.
