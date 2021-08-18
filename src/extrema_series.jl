@@ -82,10 +82,12 @@ function extrema_series(
         y^(degree + 1) * p[degree+1]
     end
 
-    # If the restterm is finite the result will never be finite
+    # If the restterm is finite the result will never be finite,
+    # return the zeroth order enclosure
     if !isfinite(restterm)
         verbose && @info "non-finite restterm"
-        return restterm, copy(restterm), copy(restterm)
+        res = maybe_abs(p[0])
+        return res, copy(res), copy(res)
     end
 
     # Compute the Taylor series at the midpoint of x
@@ -170,10 +172,12 @@ function minimum_series(
         y^(degree + 1) * p[degree+1]
     end
 
-    # If the restterm is finite the result will never be finite
+    # If the restterm is finite the result will never be finite,
+    # return the zeroth order enclosure
     if !isfinite(restterm)
         verbose && @info "non-finite restterm"
-        return restterm, copy(restterm)
+        res = maybe_abs(p[0])
+        return res, copy(res)
     end
 
     # Compute the Taylor series at the midpoint of x
@@ -244,10 +248,12 @@ function maximum_series(
         y^(degree + 1) * p[degree+1]
     end
 
-    # If the restterm is finite the result will never be finite
+    # If the restterm is finite the result will never be finite,
+    # return the zeroth order enclosure
     if !isfinite(restterm)
         verbose && @info "non-finite restterm"
-        return restterm, copy(restterm)
+        res = maybe_abs(p[0])
+        return res, copy(res)
     end
 
     # Compute the Taylor series at the midpoint of x
