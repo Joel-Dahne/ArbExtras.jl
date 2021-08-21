@@ -67,3 +67,32 @@ Return `true` if `a` and `b` defines a finite interval `[a, b]`. It
 checks that `a` and `b` are both finite and satisfy `a <= b`.
 """
 check_interval(::Type{Bool}, a::Arf, b::Arf) = isfinite(a) && isfinite(b) && a <= b
+
+"""
+    format_interval(a, b; digits = 5)
+
+Return a nicely formatted string representing the interval `[a, b]`.
+
+It prints the interval either on the form `[a, b]` or on the form `[c
++/- d]` depending on the width of the width of the interval.
+
+If `a` or `b` is non-finite it always prints an interval of the form
+`[a, b]`. Otherwise it checks if the relative error is less than
+`10^-digits`, if it is then it prints it as a ball, otherwise as an
+interval. When printed in interval form it prints at most `digits`
+digits.
+"""
+function format_interval(a, b; digits = 5)
+    if isfinite(a) && isfinite(b)
+        ball = Arb((a, b))
+        if check_tolerance(ball, rtol = Arb(10)^(-digits))
+            return string(ball)
+        end
+    end
+
+    return "(" *
+           Base.MPFR._string(convert(BigFloat, a), digits) *
+           ", " *
+           Base.MPFR._string(convert(BigFloat, b), digits) *
+           ")"
+end

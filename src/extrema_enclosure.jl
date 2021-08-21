@@ -189,8 +189,15 @@ function extrema_enclosure(
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
-              "minimum: $(Float64.((min_current_low, min_current_upp)))" *
-              "maximum: $(Float64.((max_current_low, max_current_upp)))"
+              "min: $(format_interval(min_current_low, min_current_upp)) " *
+              "max: $(format_interval(max_current_low, max_current_upp))"
+
+        non_finite_min = count(!isfinite, values_min)
+        non_finite_max = count(!isfinite, values_max)
+        verbose &&
+            (non_finite_min > 0 || non_finite_max) > 0 &&
+            @info "non-finite intervals: min: $(lpad(non_finite_min, 3)) " *
+                  "max: $(lpad(non_finite_max, 3))"
 
         isempty(intervals) && break
 
@@ -338,7 +345,10 @@ function minimum_enclosure(
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
-              "minimum: $(Float64.((min_current_low, min_current_upp)))"
+              "minimum: $(format_interval(min_current_low, min_current_upp))"
+
+        non_finite = count(!isfinite, values)
+        verbose && non_finite > 0 && @info "non-finite intervals: $non_finite"
 
         isempty(intervals) && break
 
@@ -482,7 +492,10 @@ function maximum_enclosure(
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
-              "maximum: $(Float64.((max_current_low, max_current_upp)))"
+              "maximum: $(format_interval(max_current_low, max_current_upp))"
+
+        non_finite = count(!isfinite, values)
+        verbose && non_finite > 0 && @info "non-finite intervals: $non_finite"
 
         isempty(intervals) && break
 
