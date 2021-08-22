@@ -83,7 +83,7 @@ If `a` or `b` is non-finite it always prints an interval of the form
 interval. When printed in interval form it prints at most `digits`
 digits.
 """
-function format_interval(a, b; digits = 5)
+function format_interval(a::Arf, b::Arf; digits = 5)
     if isfinite(a) && isfinite(b)
         ball = Arb((a, b))
         if check_tolerance(ball, rtol = Arb(10)^(-digits))
@@ -91,9 +91,9 @@ function format_interval(a, b; digits = 5)
         end
     end
 
-    return "(" *
+    return "[" *
            Base.MPFR._string(convert(BigFloat, a), digits) *
            ", " *
            Base.MPFR._string(convert(BigFloat, b), digits) *
-           ")"
+           "]"
 end
