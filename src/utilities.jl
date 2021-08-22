@@ -58,6 +58,7 @@ function check_interval(a::Arf, b::Arf)
     isfinite(a) && isfinite(b) ||
         throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
     a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    return nothing
 end
 
 """
