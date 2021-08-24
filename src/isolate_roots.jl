@@ -131,7 +131,7 @@ function isolate_roots(
         if Arblib.contains_zero(fa)
             return [(a, b)], [iszero(fa)]
         else
-            return Vector{NTuple{2,Arf}}(), Vector{Bool}()
+            return Vector{NTuple{2,Arf}}(), BitVector()
         end
     end
 
