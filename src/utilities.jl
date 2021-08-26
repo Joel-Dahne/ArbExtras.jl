@@ -1,16 +1,67 @@
 """
-    bisect_interval(a::Arf, b::Arf)
+    bisect_interval(a::Arf, b::Arf; log_midpoint::Bool = false)
 
 Returns two tuples, `(a, midpoint)` and `(midpoint, b)`, which
 corresponds to splitting the interval in half.
 
+If `log_midpoint = true` then the midpoint is computed in logarithmic
+scale. If `a, b > 0` this sets the midpoint to `exp((log(a) + log(b))
+/ 2)`. If `a, b < 0` the midpoint is `-exp((log(-a) + log(-b)) / 2)`.
+If `a` or `b` is exactly zero then the midpoint is set to `exp(log(b)
+/ 2)` and `-exp(log(-a) / 2)` respectively. If zero is contained in
+the interior of the interval then currently a normal bisection is
+performed (i.e. the midpoint is `(a + b) / 2`).
+
+TODO: Think about how to handle a logarithmic bisection when the
+interval contains zero
+
 The value of `midpoint` is aliased in the two tuples and care should
 therefore be taken if doing inplace operations on it.
 """
-function bisect_interval(a::Arf, b::Arf)
-    midpoint = a + b
-    Arblib.mul_2exp!(midpoint, midpoint, -1)
-    return (a, midpoint), (midpoint, b)
+function bisect_interval(a::Arf, b::Arf; log_midpoint::Bool = false)
+    if log_midpoint && a > 0
+        c = Arb(a)
+        d = Arb(b)
+        Arblib.log!(c, c)
+        Arblib.log!(d, d)
+        Arblib.add!(c, c, d)
+        Arblib.mul_2exp!(c, c, -1)
+        Arblib.exp!(c, c)
+        mid = midpoint(c)
+    elseif log_midpoint && b < 0
+        c = Arb(a)
+        d = Arb(b)
+        Arblib.neg!(c, c)
+        Arblib.neg!(d, d)
+        Arblib.log!(c, c)
+        Arblib.log!(d, d)
+        Arblib.add!(c, c, d)
+        Arblib.mul_2exp!(c, c, -1)
+        Arblib.exp!(c, c)
+        Arblib.neg!(c, c)
+        mid = midpoint(c)
+    elseif log_midpoint && iszero(a) && iszero(b)
+        mid = zero(a)
+    elseif log_midpoint && iszero(a)
+        d = Arb(b)
+        Arblib.log!(d, d)
+        Arblib.mul_2exp!(d, d, -1)
+        Arblib.exp!(d, d)
+        mid = midpoint(d)
+    elseif log_midpoint && iszero(b)
+        c = Arb(b)
+        Arblib.neg!(c, c)
+        Arblib.log!(c, c)
+        Arblib.mul_2exp!(c, c, -1)
+        Arblib.exp!(c, c)
+        Arblib.neg!(c, c)
+        mid = midpoint(c)
+    else
+        mid = a + b
+        Arblib.mul_2exp!(mid, mid, -1)
+    end
+
+    return (a, mid), (mid, b)
 end
 
 """
