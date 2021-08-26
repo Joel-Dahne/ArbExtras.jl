@@ -7,13 +7,16 @@ corresponds to splitting the interval in half.
 If `log_midpoint = true` then the midpoint is computed in logarithmic
 scale. If `a, b > 0` this sets the midpoint to `exp((log(a) + log(b))
 / 2)`. If `a, b < 0` the midpoint is `-exp((log(-a) + log(-b)) / 2)`.
-If `a` or `b` is exactly zero then the midpoint is set to `exp(log(b)
-/ 2)` and `-exp(log(-a) / 2)` respectively. If zero is contained in
-the interior of the interval then currently a normal bisection is
-performed (i.e. the midpoint is `(a + b) / 2`).
+If zero is contained in the interval then currently a normal bisection
+is performed (i.e. the midpoint is `(a + b) / 2`).
+
+Logarithmic bisection can be useful if the function in consideration
+has a logarithmic behaviour and the interval has numbers exponentially
+close to zero, for example `[1e-10000, 1e-1]`. In that case normal
+bisection could give very slow convergence.
 
 TODO: Think about how to handle a logarithmic bisection when the
-interval contains zero
+interval contains zero.
 
 The value of `midpoint` is aliased in the two tuples and care should
 therefore be taken if doing inplace operations on it.
@@ -36,22 +39,6 @@ function bisect_interval(a::Arf, b::Arf; log_midpoint::Bool = false)
         Arblib.log!(c, c)
         Arblib.log!(d, d)
         Arblib.add!(c, c, d)
-        Arblib.mul_2exp!(c, c, -1)
-        Arblib.exp!(c, c)
-        Arblib.neg!(c, c)
-        mid = midpoint(c)
-    elseif log_midpoint && iszero(a) && iszero(b)
-        mid = zero(a)
-    elseif log_midpoint && iszero(a)
-        d = Arb(b)
-        Arblib.log!(d, d)
-        Arblib.mul_2exp!(d, d, -1)
-        Arblib.exp!(d, d)
-        mid = midpoint(d)
-    elseif log_midpoint && iszero(b)
-        c = Arb(b)
-        Arblib.neg!(c, c)
-        Arblib.log!(c, c)
         Arblib.mul_2exp!(c, c, -1)
         Arblib.exp!(c, c)
         Arblib.neg!(c, c)
