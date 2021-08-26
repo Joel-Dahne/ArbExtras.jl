@@ -1,5 +1,5 @@
 """
-    extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, point_value_min, point_value_max, maxevals, depth, threaded, verbose)
+    extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_min, point_value_max, maxevals, depth, threaded, verbose)
 
 Compute both the minimum and maximum of the function `f` on the
 interval `[a, b]` and return them as a 2-tuple.
@@ -22,6 +22,9 @@ interval `[a, b]`. For the computation of the maximum this is mostly
 the same, only difference is that we have to take the absolute value
 of the evaluations. For the minimum we have to take into account that
 the polynomial might cross zero, in which case the minimum is zero.
+
+If `log_bisection = true` then the intervals are bisected in a
+logarithmic scale, see [`bisect_interval`](@ref) for details.
 
 The arguments `point_value_min` and `point_value_max` can optionally
 be set to a a priori upper or lower bounds of the min and max
@@ -53,6 +56,7 @@ function extrema_enclosure(
     atol = 0,
     rtol = sqrt(eps(one(a))),
     abs_value = false,
+    log_bisection = false,
     point_value_min::Arb = Arb(Inf, prec = precision(a)),
     point_value_max::Arb = Arb(-Inf, prec = precision(a)),
     maxevals::Integer = 1000,
@@ -181,7 +185,10 @@ function extrema_enclosure(
                     Arblib.max!(max_upp, max_upp, values_max_upp[i])
                 else
                     # Otherwise split the interval further
-                    push!(next_intervals, bisect_interval(intervals[i]...)...)
+                    push!(
+                        next_intervals,
+                        bisect_interval(intervals[i]..., log_midpoint = log_bisection)...,
+                    )
                 end
             end
         end
@@ -224,7 +231,7 @@ function extrema_enclosure(
 end
 
 """
-    minimum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, point_value_min, maxevals, depth, threaded, verbose)
+    minimum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_min, maxevals, depth, threaded, verbose)
 
 Compute the minimum of the function `f` on the interval `[a, b]`.
 
@@ -239,6 +246,7 @@ function minimum_enclosure(
     atol = 0,
     rtol = sqrt(eps(one(a))),
     abs_value = false,
+    log_bisection = false,
     point_value_min::Arb = Arb(Inf, prec = precision(a)),
     maxevals::Integer = 1000,
     depth::Integer = 20,
@@ -337,7 +345,10 @@ function minimum_enclosure(
                     Arblib.min!(min_upp, min_upp, values_upp[i])
                 else
                     # Otherwise split the interval further
-                    push!(next_intervals, bisect_interval(intervals[i]...)...)
+                    push!(
+                        next_intervals,
+                        bisect_interval(intervals[i]..., log_midpoint = log_bisection)...,
+                    )
                 end
             end
         end
@@ -373,7 +384,7 @@ function minimum_enclosure(
 end
 
 """
-    maximum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, point_value_max, maxevals, depth, threaded, verbose)
+    maximum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_max, maxevals, depth, threaded, verbose)
 
 Compute the maximum of the function `f` on the interval `[a, b]`.
 
@@ -388,6 +399,7 @@ function maximum_enclosure(
     atol = 0,
     rtol = sqrt(eps(one(a))),
     abs_value = false,
+    log_bisection = false,
     point_value_max::Arb = Arb(-Inf, prec = precision(a)),
     maxevals::Integer = 1000,
     depth::Integer = 20,
@@ -484,7 +496,10 @@ function maximum_enclosure(
                     Arblib.max!(max_upp, max_upp, values_upp[i])
                 else
                     # Otherwise split the interval further
-                    push!(next_intervals, bisect_interval(intervals[i]...)...)
+                    push!(
+                        next_intervals,
+                        bisect_interval(intervals[i]..., log_midpoint = log_bisection)...,
+                    )
                 end
             end
         end
