@@ -5,6 +5,26 @@
     @test isequal(ArbExtras.bisect_interval(a, b), ((a, Arf(Inf)), (Arf(Inf), b)))
     a, b, = Arf(0, prec = 80), Arf(2, prec = 90)
     @test precision(ArbExtras.bisect_interval(a, b)[1][2]) == 90
+
+    a, b = Arf(1), Arf(2)
+    @test ArbExtras.bisect_interval(a, b, log_midpoint = true)[1][2] ≈ exp(log(2) / 2)
+    a, b = Arf(-2), Arf(-1)
+    @test ArbExtras.bisect_interval(a, b, log_midpoint = true)[1][2] ≈ -exp(log(2) / 2)
+    a, b = Arf(0), Arf(2)
+    @test isequal(
+        ArbExtras.bisect_interval(a, b, log_midpoint = true),
+        ((a, Arf(1)), (Arf(1), b)),
+    )
+    a, b = Arf(-2), Arf(0)
+    @test isequal(
+        ArbExtras.bisect_interval(a, b, log_midpoint = true),
+        ((a, Arf(-1)), (Arf(-1), b)),
+    )
+    a, b = Arf(-2), Arf(2)
+    @test isequal(
+        ArbExtras.bisect_interval(a, b, log_midpoint = true),
+        ((a, Arf(0)), (Arf(0), b)),
+    )
 end
 
 @testset "check_tolerance" begin
