@@ -155,27 +155,29 @@ function minimum_series(
     p = f(ArbSeries([x, one(x)], degree = degree + 1))
 
     # Check if f happens to be monotonic on the interval, in that case
-    # evaluate on the endpoints only
+    # evaluate on the endpoints where the maximum could be attained
     if !Arblib.contains_zero(p[1])
         verbose && @info "monotonic on interval - evaluate on endpoints"
-        fa, fb = f(Arb(a)), f(Arb(b))
-
         if abs_value
+            fa, fb = f(Arb(a)), f(Arb(b))
             sgn = _check_signs(fa, fb)
             if sgn == -1
                 # The sign differs return zero
                 verbose && @info "sign of endpoints differ - minimum is zero"
 
-                return zero(fa), Arb(NaN, prec = precision(a))
+                res = zero(fa)
             else
-                m = min(abs(fa), abs(fb))
-                Arblib.nonnegative_part!(m, m)
-
-                return m, Arb(NaN, prec = precision(a))
+                res = min(abs(fa), abs(fb))
+                Arblib.nonnegative_part!(res, res)
             end
+        elseif Arblib.ispositive(p[1])
+            # Minimum is attained at the left endpoint
+            res = f(Arb(a))
         else
-            return min(fa, fb), Arb(NaN, prec = precision(a))
+            # Minimum is attained at the right endpoint
+            res = f(Arb(b))
         end
+        return res, Arb(NaN, prec = precision(a))
     end
 
     restterm = let y = zero(x)
@@ -254,11 +256,20 @@ function maximum_series(
     p = f(ArbSeries([x, one(x)], degree = degree + 1))
 
     # Check if f happens to be monotonic on the interval, in that case
-    # evaluate on the endpoints only
+    # evaluate on the endpoints where the maximum could be attained
     if !Arblib.contains_zero(p[1])
         verbose && @info "monotonic on interval - evaluate on endpoints"
-        fa, fb = f(Arb(a)), f(Arb(b))
-        return max(maybe_abs(fa), maybe_abs(fb)), Arb(NaN, prec = precision(a))
+        if abs_value
+            # Maximum could be attained at either endpoint
+            res = max(abs(f(Arb(a))), abs(f(Arb(b))))
+        elseif Arblib.ispositive(p[1])
+            # Maximum is attained at the right endpoint
+            res = f(Arb(b))
+        else
+            # Maximum is attained at the left endpoint
+            res = f(Arb(a))
+        end
+        return res, Arb(NaN, prec = precision(a))
     end
 
     restterm = let y = zero(x)
