@@ -1,4 +1,58 @@
 """
+    _current_lower_upper_bound(minormax, low, upp, values_low, values_upp, values)
+
+Returns a lower and upper bound of the extremum given that `low` and
+`upp` and lower and upper bounds of the extremum and so are all values
+in `values_low` and `Values_upp` respectively. It determines
+**either** the minimum or the maximum depending on if `minormax = min`
+or `minormax = max`.
+
+This is mainly an internal function which implements behaviour which
+is common for [`extrema_enclosure`](@ref), [`minimum_enclosure`](@ref)
+and [`maximum_enclosure`](@ref).
+
+"""
+function _current_lower_upper_bound(
+    minormax::Union{typeof(min),typeof(max)},
+    low::Arf,
+    upp::Arf,
+    values_low::Vector{Arf},
+    values_upp::Vector{Arf},
+    values::Vector{Arb},
+)
+    if minormax isa typeof(min)
+        minormax! = Arblib.min!
+        minormaximum = minimum
+    elseif minormax isa typeof(max)
+        minormax! = Arblib.max!
+        minormaximum = maximum
+    end
+
+    if all(isfinite, values)
+        current_low = minormax(low, minormaximum(values_low))
+        current_upp = minormax(upp, minormaximum(values_upp))
+    elseif minormax isa typeof(min)
+        current_low = Arf(-Inf, prec = precision(low))
+        current_upp = upp
+        for value in values_upp
+            if isfinite(value)
+                minormax!(current_upp, current_upp, value)
+            end
+        end
+    elseif minormax isa typeof(max)
+        current_low = upp
+        for value in values_low
+            if isfinite(value)
+                minormax!(current_low, current_low, value)
+            end
+        end
+        current_upp = Arf(Inf, prec = precision(low))
+    end
+
+    return current_low, current_upp
+end
+
+"""
     extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_min, point_value_max, depth_start, maxevals, depth, threaded, verbose)
 
 Compute both the minimum and maximum of the function `f` on the
@@ -140,34 +194,23 @@ function extrema_enclosure(
             values_max_low[i], values_max_upp[i] = getinterval(values_max[i])
         end
 
-        # Compute current lower and upper bound of extrema on both the
-        # completed parts of the interval and the remaining ones.
-        if all(isfinite, values_min)
-            min_current_low = min(min_low, minimum(values_min_low))
-            min_current_upp = min(min_upp, minimum(values_min_upp))
-        else
-            min_current_low = Arf(-Inf, prec = precision(a))
-            min_current_upp = min(
-                min_upp,
-                minimum(
-                    filter(isfinite, values_min_upp),
-                    init = Arf(Inf, prec = precision(a)),
-                ),
-            )
-        end
-        if all(isfinite, values_max)
-            max_current_low = max(max_low, maximum(values_max_low))
-            max_current_upp = max(max_upp, maximum(values_max_upp))
-        else
-            max_current_low = max(
-                max_low,
-                maximum(
-                    filter(isfinite, values_max_low),
-                    init = Arf(-Inf, prec = precision(a)),
-                ),
-            )
-            max_current_upp = Arf(Inf, prec = precision(a))
-        end
+        # Compute current lower and upper bound of extrema
+        min_current_low, min_current_upp = _current_lower_upper_bound(
+            min,
+            min_low,
+            min_upp,
+            values_min_low,
+            values_min_upp,
+            values_min,
+        )
+        max_current_low, max_current_upp = _current_lower_upper_bound(
+            max,
+            max_low,
+            max_upp,
+            values_max_low,
+            values_max_upp,
+            values_max,
+        )
 
         min_current_upp = min(min_current_upp, ubound(point_value_min))
         max_current_low = max(max_current_low, lbound(point_value_max))
@@ -323,18 +366,15 @@ function minimum_enclosure(
             values_low[i], values_upp[i] = getinterval(values[i])
         end
 
-        # Compute current lower and upper bound of minimum on both the
-        # completed parts of the interval and the remaining ones.
-        if all(isfinite, values)
-            min_current_low = min(min_low, minimum(values_low))
-            min_current_upp = min(min_upp, minimum(values_upp))
-        else
-            min_current_low = Arf(-Inf, prec = precision(a))
-            min_current_upp = min(
-                min_upp,
-                minimum(filter(isfinite, values_upp), init = Arf(Inf, prec = precision(a))),
-            )
-        end
+        # Compute current lower and upper bound of minimum
+        min_current_low, min_current_upp = _current_lower_upper_bound(
+            min,
+            min_low,
+            min_upp,
+            values_low,
+            values_upp,
+            values,
+        )
 
         min_current_upp = min(min_current_upp, ubound(point_value_min))
 
@@ -470,21 +510,15 @@ function maximum_enclosure(
             values_low[i], values_upp[i] = getinterval(Arf, values[i])
         end
 
-        # Compute current lower and upper bound of maximum on both the
-        # completed parts of the interval and the remaining ones.
-        if all(isfinite, values)
-            max_current_low = max(max_low, maximum(values_low))
-            max_current_upp = max(max_upp, maximum(values_upp))
-        else
-            max_current_low = max(
-                max_low,
-                maximum(
-                    filter(isfinite, values_low),
-                    init = Arf(-Inf, prec = precision(a)),
-                ),
-            )
-            max_current_upp = Arf(Inf, prec = precision(a))
-        end
+        # Compute current lower and upper bound of maximum
+        max_current_low, max_current_upp = _current_lower_upper_bound(
+            max,
+            max_low,
+            max_upp,
+            values_low,
+            values_upp,
+            values,
+        )
 
         max_current_low = max(max_current_low, lbound(point_value_max))
 
