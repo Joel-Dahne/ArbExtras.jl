@@ -1,5 +1,5 @@
 """
-    extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_min, point_value_max, maxevals, depth, threaded, verbose)
+    extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_min, point_value_max, depth_start, maxevals, depth, threaded, verbose)
 
 Compute both the minimum and maximum of the function `f` on the
 interval `[a, b]` and return them as a 2-tuple.
@@ -34,9 +34,17 @@ the minimum and maximum of the evaluations respectively. This can
 allow the method to quicker discard subintervals where the extrema
 could not possibly be located.
 
+The argument `depth_start` bisect the interval using
+[`bisect_interval_recursive`](@ref) before starting to compute the
+extrema. This can be useful if it is known beforehand that a certain
+number of bisections will be necessary before the enclosures get good
+enough. It defaults to `0` which corresponds to not bisecting the
+interval at all before starting.
+
 The arguments `maxevals` and `depth` can be used to limit the number
 of function evaluations and the number of bisections of the interval
-respectively.
+respectively. Notice that `depth` takes `depth_start` into account, so
+the maximum number of iterations is `depth - depth_start`.
 
 If `threaded = true` then evaluate `f` in parallel on the intervals
 using [`Threads.@threads`](@ref).
@@ -59,6 +67,7 @@ function extrema_enclosure(
     log_bisection = false,
     point_value_min::Arb = Arb(Inf, prec = precision(a)),
     point_value_max::Arb = Arb(-Inf, prec = precision(a)),
+    depth_start::Integer = 0,
     maxevals::Integer = 1000,
     depth::Integer = 20,
     threaded = false,
@@ -74,8 +83,8 @@ function extrema_enclosure(
         return fa, fa
     end
 
-    # List of intervals left to process
-    intervals = [(a, b)]
+    # List of intervals
+    intervals = bisect_interval_recursive(a, b, depth_start, log_midpoint = log_bisection)
 
     # Stores the lower and upper bound of the minimum and the maximum
     # on the parts of the interval which are completed. Initially they
@@ -210,11 +219,11 @@ function extrema_enclosure(
 
         # Check if we have done the maximum number of function
         # evaluations or reached the maximum depth
-        if evals >= maxevals || iterations >= depth
+        if evals >= maxevals || iterations >= depth - depth_start
             if verbose
                 evals >= maxevals &&
                     @info "reached maximum number of evaluations $evals >= $maxevals"
-                iterations >= depth && @info "reached maximum depth $depth"
+                iterations >= depth - depth_start && @info "reached maximum depth $depth"
             end
             min_low, min_upp = min_current_low, min_current_upp
             max_low, max_upp = max_current_low, max_current_upp
@@ -231,7 +240,7 @@ function extrema_enclosure(
 end
 
 """
-    minimum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_min, maxevals, depth, threaded, verbose)
+    minimum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_min, depth_start, maxevals, depth, threaded, verbose)
 
 Compute the minimum of the function `f` on the interval `[a, b]`.
 
@@ -248,6 +257,7 @@ function minimum_enclosure(
     abs_value = false,
     log_bisection = false,
     point_value_min::Arb = Arb(Inf, prec = precision(a)),
+    depth_start::Integer = 0,
     maxevals::Integer = 1000,
     depth::Integer = 20,
     threaded = false,
@@ -266,8 +276,8 @@ function minimum_enclosure(
         end
     end
 
-    # List of intervals left to process
-    intervals = [(a, b)]
+    # List of intervals
+    intervals = bisect_interval_recursive(a, b, depth_start, log_midpoint = log_bisection)
 
     # Stores the lower and upper bound of the minimum on the parts of
     # the interval which are completed. Initially they are set to the
@@ -365,11 +375,11 @@ function minimum_enclosure(
 
         # Check if we have done the maximum number of function
         # evaluations or reached the maximum depth
-        if evals >= maxevals || iterations >= depth
+        if evals >= maxevals || iterations >= depth - depth_start
             if verbose
                 evals >= maxevals &&
                     @info "reached maximum number of evaluations $evals >= $maxevals"
-                iterations >= depth && @info "reached maximum depth $depth"
+                iterations >= depth - depth_start && @info "reached maximum depth $depth"
             end
             min_low, min_upp = min_current_low, min_current_upp
             break
@@ -384,7 +394,7 @@ function minimum_enclosure(
 end
 
 """
-    maximum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_max, maxevals, depth, threaded, verbose)
+    maximum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_max, depth_start, maxevals, depth, threaded, verbose)
 
 Compute the maximum of the function `f` on the interval `[a, b]`.
 
@@ -401,6 +411,7 @@ function maximum_enclosure(
     abs_value = false,
     log_bisection = false,
     point_value_max::Arb = Arb(-Inf, prec = precision(a)),
+    depth_start::Integer = 0,
     maxevals::Integer = 1000,
     depth::Integer = 20,
     threaded = false,
@@ -414,8 +425,8 @@ function maximum_enclosure(
         return maybe_abs(f(Arb(a)))
     end
 
-    # List of intervals left to process
-    intervals = [(a, b)]
+    # List of intervals
+    intervals = bisect_interval_recursive(a, b, depth_start, log_midpoint = log_bisection)
 
     # Stores the lower and upper bound of the maximum on the parts of
     # the interval which are completed. Initially they are set to the
@@ -516,11 +527,11 @@ function maximum_enclosure(
 
         # Check if we have done the maximum number of function
         # evaluations or reached the maximum depth
-        if evals >= maxevals || iterations >= depth
+        if evals >= maxevals || iterations >= depth - depth_start
             if verbose
                 evals >= maxevals &&
                     @info "reached maximum number of evaluations $evals >= $maxevals"
-                iterations >= depth && @info "reached maximum depth $depth"
+                iterations >= depth - depth_start && @info "reached maximum depth $depth"
             end
             max_low, max_upp = max_current_low, max_current_upp
             break

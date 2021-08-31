@@ -52,6 +52,34 @@ function bisect_interval(a::Arf, b::Arf; log_midpoint::Bool = false)
 end
 
 """
+    bisect_interval_recursive(a::Arf, b::Arf, depth::Integer; log_midpoint::Bool = false)
+
+Recursively bisect the interval `[a, b]` a number of `depth` times.
+The bisection is done using [`bisect_interval`](@ref) and it returns a
+vector with `2^depth` intervals.
+
+It accepts the same arguments as [`bisect_interval`](@ref).
+"""
+function bisect_interval_recursive(
+    a::Arf,
+    b::Arf,
+    depth::Integer;
+    log_midpoint::Bool = false,
+)
+    depth >= 0 || Throw(ArgumentError("depth needs to be non-negative, got $depth"))
+
+    res = Vector{NTuple{2,Arf}}(undef, 2^depth)
+    res[1] = (a, b)
+    for i = 1:depth
+        for j in reverse(1:2^(i-1))
+            res[2j-1], res[2j] = bisect_interval(res[j]...; log_midpoint)
+        end
+    end
+
+    return res
+end
+
+"""
     check_tolerance(x::Arb; atol = nothing, rtol = nothing)
 
 Return `true` if `x` satisfies the absolute tolerance `atol` or the
