@@ -78,9 +78,9 @@ function extrema_enclosure(
     maybe_abs = abs_value ? abs : identity
 
     if a == b
-        fa = maybe_abs(f(Arb(a)))
-        abs_value && Arblib.nonnegative_part!(fa, fa)
-        return fa, fa
+        res = maybe_abs(f(Arb(a)))
+        abs_value && Arblib.nonnegative_part!(res, res)
+        return res, res
     end
 
     # List of intervals
@@ -94,7 +94,6 @@ function extrema_enclosure(
 
     iterations = 0
     evals = 0
-
     while true
         iterations += 1
         evals += length(intervals)
@@ -235,6 +234,7 @@ function extrema_enclosure(
     res_max = Arb((max_low, max_upp))
     if abs_value
         Arblib.nonnegative_part!(res_min, res_min)
+        Arblib.nonnegative_part!(res_max, res_max)
     end
     return res_min, res_max
 end
@@ -269,11 +269,8 @@ function minimum_enclosure(
 
     if a == b
         res = maybe_abs(f(Arb(a)))
-        if abs_value
-            return Arblib.nonnegative_part!(res, res)
-        else
-            return res
-        end
+        abs_value && Arblib.nonnegative_part!(res, res)
+        return res
     end
 
     # List of intervals
@@ -387,9 +384,7 @@ function minimum_enclosure(
     end
 
     res = Arb((min_low, min_upp))
-    if abs_value
-        Arblib.nonnegative_part!(res, res)
-    end
+    abs_value && Arblib.nonnegative_part!(res, res)
     return res
 end
 
@@ -538,5 +533,7 @@ function maximum_enclosure(
         end
     end
 
-    return Arb((max_low, max_upp))
+    res = Arb((max_low, max_upp))
+    abs_value && Arblib.nonnegative_part!(res, res)
+    return res
 end
