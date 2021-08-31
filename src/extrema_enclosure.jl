@@ -175,7 +175,7 @@ function extrema_enclosure(
 
         # If we are not done split the intervals where extrema could
         # be located and which do not satisfy the tolerance
-        next_intervals = Vector{eltype(intervals)}()
+        next_intervals = sizehint!(empty(intervals), 2length(intervals))
         for i in eachindex(intervals)
             # Check if the extrema could be located in the interval
             possible_min = values_min_low[i] <= min_current_upp || !isfinite(values_min[i])
@@ -343,7 +343,7 @@ function minimum_enclosure(
 
         # If we are not done split the intervals where minimum could
         # be located and which do not satisfy the tolerance
-        next_intervals = Vector{eltype(intervals)}()
+        next_intervals = sizehint!(empty(intervals), 2length(intervals))
         for i in eachindex(intervals)
             # Check if the minimum could be located in the interval
             if values_low[i] <= min_current_upp || !isfinite(values[i])
@@ -495,7 +495,7 @@ function maximum_enclosure(
 
         # If we are not done split the intervals where maximum could
         # be located and which do not satisfy the tolerance
-        next_intervals = Vector{eltype(intervals)}()
+        next_intervals = sizehint!(empty(intervals), 2length(intervals))
         for i in eachindex(intervals)
             # Check if the maximum could be located in the interval
             if max_current_low <= values_upp[i] || !isfinite(values[i])
