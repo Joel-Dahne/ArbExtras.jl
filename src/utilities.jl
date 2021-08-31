@@ -70,7 +70,7 @@ function bisect_interval_recursive(
 
     res = Vector{NTuple{2,Arf}}(undef, 2^depth)
     res[1] = (a, b)
-    for i = 1:depth
+    @inbounds for i = 1:depth
         for j in reverse(1:2^(i-1))
             res[2j-1], res[2j] = bisect_interval(res[j]...; log_midpoint)
         end
