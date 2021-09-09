@@ -40,9 +40,7 @@ function extrema_series(
     abs_value = false,
     verbose = false,
 )
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     maybe_abs = abs_value ? abs : identity
 
@@ -84,30 +82,43 @@ function extrema_series(
         y^(degree + 1) * p[degree+1]
     end
 
-    # If the restterm is finite the result will never be finite
+    # If the restterm is finite the result will never be finite,
+    # return the zeroth order enclosure
     if !isfinite(restterm)
         verbose && @info "non-finite restterm"
-        return restterm, copy(restterm), copy(restterm)
+        res = maybe_abs(p[0])
+        return res, copy(res), copy(res)
     end
 
     # Compute the Taylor series at the midpoint of x
     q = f(ArbSeries([Arblib.midref(x), one(x)]; degree))
 
-    # FIXME: The computation of the endpoints here needs to be exact!
-    # This can always be done by computing at sufficiently high
-    # precision but is not currently done
-    if a - Arblib.midref(x) != Arb(a) - Arblib.midpoint(Arb, x) ||
-       b - Arblib.midref(x) != Arb(b) - Arblib.midpoint(Arb, x)
-        throw(AssertionError("endpoints needs to be evaluated at higher precision"))
-    end
+    # We want to enclose the extrema between c and d. However due to
+    # rounding the values of c and d might not be known exactly. We
+    # pass the smaller interval to extrema_polynomial, i.e. the one
+    # given by taking the upper bound of c and the lower bound of d.
+    # If c or d are not exact we also have to include the missing
+    # parts of the endpoints.
+    # TODO: In some extremely rare cases we might have ubound(c) >
+    # lbound(d), in this case an exception will be thrown.
+    c = a - midpoint(Arb, x)
+    d = b - midpoint(Arb, x)
 
-    # Enclose the maximum of the Taylor series
-    res = extrema_polynomial(
-        ArbPoly(q),
-        a - Arblib.midref(x),
-        b - Arblib.midref(x);
-        abs_value,
-    )
+    # Enclose the extrema of the Taylor series
+    res = extrema_polynomial(ArbPoly(q), ubound(c), lbound(d); abs_value)
+
+    if !iszero(Arblib.radref(c))
+        # Enclose extrema on [c, ubound(c)]
+        y = maybe_abs(q(union(c, ubound(Arb, c))))
+        Arblib.min!(res[1], res[1], y)
+        Arblib.max!(res[2], res[2], y)
+    end
+    if !iszero(Arblib.radref(d))
+        # Enclose extrema on [lbound(d), d]
+        y = maybe_abs(q(union(d, lbound(Arb, d))))
+        Arblib.min!(res[1], res[1], y)
+        Arblib.max!(res[2], res[2], y)
+    end
 
     return res[1] + restterm, res[2] + restterm, maybe_abs(q[0])
 end
@@ -130,9 +141,7 @@ function minimum_series(
     abs_value = false,
     verbose = false,
 )
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     maybe_abs = abs_value ? abs : identity
     if a == b
@@ -146,27 +155,29 @@ function minimum_series(
     p = f(ArbSeries([x, one(x)], degree = degree + 1))
 
     # Check if f happens to be monotonic on the interval, in that case
-    # evaluate on the endpoints only
+    # evaluate on the endpoints where the maximum could be attained
     if !Arblib.contains_zero(p[1])
         verbose && @info "monotonic on interval - evaluate on endpoints"
-        fa, fb = f(Arb(a)), f(Arb(b))
-
         if abs_value
+            fa, fb = f(Arb(a)), f(Arb(b))
             sgn = _check_signs(fa, fb)
             if sgn == -1
                 # The sign differs return zero
                 verbose && @info "sign of endpoints differ - minimum is zero"
 
-                return zero(fa), Arb(NaN, prec = precision(a))
+                res = zero(fa)
             else
-                m = min(abs(fa), abs(fb))
-                Arblib.nonnegative_part!(m, m)
-
-                return m, Arb(NaN, prec = precision(a))
+                res = min(abs(fa), abs(fb))
+                Arblib.nonnegative_part!(res, res)
             end
+        elseif Arblib.ispositive(p[1])
+            # Minimum is attained at the left endpoint
+            res = f(Arb(a))
         else
-            return min(fa, fb), Arb(NaN, prec = precision(a))
+            # Minimum is attained at the right endpoint
+            res = f(Arb(b))
         end
+        return res, Arb(NaN, prec = precision(a))
     end
 
     restterm = let y = zero(x)
@@ -174,30 +185,39 @@ function minimum_series(
         y^(degree + 1) * p[degree+1]
     end
 
-    # If the restterm is finite the result will never be finite
+    # If the restterm is finite the result will never be finite,
+    # return the zeroth order enclosure
     if !isfinite(restterm)
         verbose && @info "non-finite restterm"
-        return restterm, copy(restterm)
+        res = maybe_abs(p[0])
+        return res, copy(res)
     end
 
     # Compute the Taylor series at the midpoint of x
     q = f(ArbSeries([Arblib.midref(x), one(x)]; degree))
 
-    # FIXME: The computation of the endpoints here needs to be exact!
-    # This can always be done by computing at sufficiently high
-    # precision but is not currently done
-    if !iszero(Arblib.radref(Arb(a) - Arblib.midpoint(Arb, x))) ||
-       !iszero(Arblib.radref(Arb(b) - Arblib.midpoint(Arb, x)))
-        throw(AssertionError("endpoints needs to be evaluated at higher precision"))
-    end
+    # We want to enclose the minimum between c and d. However due to
+    # rounding the values of c and d might not be known exactly. We
+    # pass the smaller interval to minimum_polynomial, i.e. the one
+    # given by taking the upper bound of c and the lower bound of d.
+    # If c or d are not exact we also have to include the missing
+    # parts of the endpoints.
+    # FIXME: In some extremely rare cases we might have ubound(c) >
+    # lbound(d), in this case an exception will be thrown.
+    c = a - midpoint(Arb, x)
+    d = b - midpoint(Arb, x)
 
-    # Enclose the maximum of the Taylor series
-    res = minimum_polynomial(
-        ArbPoly(q),
-        a - Arblib.midref(x),
-        b - Arblib.midref(x);
-        abs_value,
-    )
+    # Enclose the minimum of the Taylor series
+    res = minimum_polynomial(ArbPoly(q), ubound(c), lbound(d); abs_value)
+
+    if !iszero(Arblib.radref(c))
+        # Enclose maximum on [c, ubound(c)]
+        Arblib.min!(res, res, maybe_abs(q(union(c, ubound(Arb, c)))))
+    end
+    if !iszero(Arblib.radref(d))
+        # Enclose maximum on [lbound(d), d]
+        Arblib.min!(res, res, maybe_abs(q(union(d, lbound(Arb, d)))))
+    end
 
     return res + restterm, maybe_abs(q[0])
 end
@@ -221,9 +241,7 @@ function maximum_series(
     abs_value = false,
     verbose = false,
 )
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     maybe_abs = abs_value ? abs : identity
 
@@ -238,11 +256,20 @@ function maximum_series(
     p = f(ArbSeries([x, one(x)], degree = degree + 1))
 
     # Check if f happens to be monotonic on the interval, in that case
-    # evaluate on the endpoints only
+    # evaluate on the endpoints where the maximum could be attained
     if !Arblib.contains_zero(p[1])
         verbose && @info "monotonic on interval - evaluate on endpoints"
-        fa, fb = f(Arb(a)), f(Arb(b))
-        return max(maybe_abs(fa), maybe_abs(fb)), Arb(NaN, prec = precision(a))
+        if abs_value
+            # Maximum could be attained at either endpoint
+            res = max(abs(f(Arb(a))), abs(f(Arb(b))))
+        elseif Arblib.ispositive(p[1])
+            # Maximum is attained at the right endpoint
+            res = f(Arb(b))
+        else
+            # Maximum is attained at the left endpoint
+            res = f(Arb(a))
+        end
+        return res, Arb(NaN, prec = precision(a))
     end
 
     restterm = let y = zero(x)
@@ -250,30 +277,39 @@ function maximum_series(
         y^(degree + 1) * p[degree+1]
     end
 
-    # If the restterm is finite the result will never be finite
+    # If the restterm is finite the result will never be finite,
+    # return the zeroth order enclosure
     if !isfinite(restterm)
         verbose && @info "non-finite restterm"
-        return restterm, copy(restterm)
+        res = maybe_abs(p[0])
+        return res, copy(res)
     end
 
     # Compute the Taylor series at the midpoint of x
     q = f(ArbSeries([Arblib.midref(x), one(x)]; degree))
 
-    # FIXME: The computation of the endpoints here needs to be exact!
-    # This can always be done by computing at sufficiently high
-    # precision but is not currently done
-    if a - Arblib.midref(x) != Arb(a) - Arblib.midpoint(Arb, x) ||
-       b - Arblib.midref(x) != Arb(b) - Arblib.midpoint(Arb, x)
-        throw(AssertionError("endpoints needs to be evaluated at higher precision"))
-    end
+    # We want to enclose the maximum between c and d. However due to
+    # rounding the values of c and d might not be known exactly. We
+    # pass the smaller interval to maximum_polynomial, i.e. the one
+    # given by taking the upper bound of c and the lower bound of d.
+    # If c or d are not exact we also have to include the missing
+    # parts of the endpoints.
+    # FIXME: In some extremely rare cases we might have ubound(c) >
+    # lbound(d), in this case an exception will be thrown.
+    c = a - midpoint(Arb, x)
+    d = b - midpoint(Arb, x)
 
     # Enclose the maximum of the Taylor series
-    res = maximum_polynomial(
-        ArbPoly(q),
-        a - Arblib.midref(x),
-        b - Arblib.midref(x);
-        abs_value,
-    )
+    res = maximum_polynomial(ArbPoly(q), ubound(c), lbound(d); abs_value)
+
+    if !iszero(Arblib.radref(c))
+        # Enclose maximum on [c, ubound(c)]
+        Arblib.max!(res, res, maybe_abs(q(union(c, ubound(Arb, c)))))
+    end
+    if !iszero(Arblib.radref(d))
+        # Enclose maximum on [lbound(d), d]
+        Arblib.max!(res, res, maybe_abs(q(union(d, lbound(Arb, d)))))
+    end
 
     return res + restterm, maybe_abs(q[0])
 end

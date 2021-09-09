@@ -1,5 +1,59 @@
 """
-    extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, point_value_min, point_value_max, maxevals, depth, threaded, verbose)
+    _current_lower_upper_bound(minormax, low, upp, values_low, values_upp, values)
+
+Returns a lower and upper bound of the extremum given that `low` and
+`upp` and lower and upper bounds of the extremum and so are all values
+in `values_low` and `Values_upp` respectively. It determines
+**either** the minimum or the maximum depending on if `minormax = min`
+or `minormax = max`.
+
+This is mainly an internal function which implements behaviour which
+is common for [`extrema_enclosure`](@ref), [`minimum_enclosure`](@ref)
+and [`maximum_enclosure`](@ref).
+
+"""
+function _current_lower_upper_bound(
+    minormax::Union{typeof(min),typeof(max)},
+    low::Arf,
+    upp::Arf,
+    values_low::Vector{Arf},
+    values_upp::Vector{Arf},
+    values::Vector{Arb},
+)
+    if minormax isa typeof(min)
+        minormax! = Arblib.min!
+        minormaximum = minimum
+    elseif minormax isa typeof(max)
+        minormax! = Arblib.max!
+        minormaximum = maximum
+    end
+
+    if all(isfinite, values)
+        current_low = minormax(low, minormaximum(values_low))
+        current_upp = minormax(upp, minormaximum(values_upp))
+    elseif minormax isa typeof(min)
+        current_low = Arf(-Inf, prec = precision(low))
+        current_upp = upp
+        for value in values_upp
+            if isfinite(value)
+                minormax!(current_upp, current_upp, value)
+            end
+        end
+    elseif minormax isa typeof(max)
+        current_low = upp
+        for value in values_low
+            if isfinite(value)
+                minormax!(current_low, current_low, value)
+            end
+        end
+        current_upp = Arf(Inf, prec = precision(low))
+    end
+
+    return current_low, current_upp
+end
+
+"""
+    extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_min, point_value_max, depth_start, maxevals, depth, threaded, verbose)
 
 Compute both the minimum and maximum of the function `f` on the
 interval `[a, b]` and return them as a 2-tuple.
@@ -23,6 +77,9 @@ the same, only difference is that we have to take the absolute value
 of the evaluations. For the minimum we have to take into account that
 the polynomial might cross zero, in which case the minimum is zero.
 
+If `log_bisection = true` then the intervals are bisected in a
+logarithmic scale, see [`bisect_interval`](@ref) for details.
+
 The arguments `point_value_min` and `point_value_max` can optionally
 be set to a a priori upper or lower bounds of the min and max
 respectively. Typically this is computed by evaluating `f` on some
@@ -31,9 +88,17 @@ the minimum and maximum of the evaluations respectively. This can
 allow the method to quicker discard subintervals where the extrema
 could not possibly be located.
 
+The argument `depth_start` bisect the interval using
+[`bisect_interval_recursive`](@ref) before starting to compute the
+extrema. This can be useful if it is known beforehand that a certain
+number of bisections will be necessary before the enclosures get good
+enough. It defaults to `0` which corresponds to not bisecting the
+interval at all before starting.
+
 The arguments `maxevals` and `depth` can be used to limit the number
 of function evaluations and the number of bisections of the interval
-respectively.
+respectively. Notice that `depth` takes `depth_start` into account, so
+the maximum number of iterations is `depth - depth_start`.
 
 If `threaded = true` then evaluate `f` in parallel on the intervals
 using [`Threads.@threads`](@ref).
@@ -53,39 +118,36 @@ function extrema_enclosure(
     atol = 0,
     rtol = sqrt(eps(one(a))),
     abs_value = false,
+    log_bisection = false,
     point_value_min::Arb = Arb(Inf, prec = precision(a)),
     point_value_max::Arb = Arb(-Inf, prec = precision(a)),
+    depth_start::Integer = 0,
     maxevals::Integer = 1000,
     depth::Integer = 20,
     threaded = false,
     verbose = false,
 )
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     maybe_abs = abs_value ? abs : identity
 
     if a == b
-        fa = maybe_abs(f(Arb(a)))
-        abs_value && Arblib.nonnegative_part!(fa, fa)
-        return fa, fa
+        res = maybe_abs(f(Arb(a)))
+        abs_value && Arblib.nonnegative_part!(res, res)
+        return res, res
     end
 
-    # List of intervals left to process
-    intervals = [(a, b)]
+    # List of intervals
+    intervals = bisect_interval_recursive(a, b, depth_start, log_midpoint = log_bisection)
 
     # Stores the lower and upper bound of the minimum and the maximum
     # on the parts of the interval which are completed. Initially they
     # are set to the neutral element for minimum.
-    min_low = Arf(Inf, prec = precision(a))
-    min_upp = Arf(Inf, prec = precision(a))
-    max_low = Arf(-Inf, prec = precision(a))
-    max_upp = Arf(-Inf, prec = precision(a))
+    min_low, min_upp = Arf(Inf, prec = precision(a)), Arf(Inf, prec = precision(a))
+    max_low, max_upp = Arf(-Inf, prec = precision(a)), Arf(-Inf, prec = precision(a))
 
     iterations = 0
     evals = 0
-
     while true
         iterations += 1
         evals += length(intervals)
@@ -128,70 +190,41 @@ function extrema_enclosure(
         values_max_low = similar(values_max, Arf)
         values_max_upp = similar(values_max, Arf)
         for i in eachindex(intervals)
-            values_min_low[i], values_min_upp[i] = Arblib.getinterval(values_min[i])
-            values_max_low[i], values_max_upp[i] = Arblib.getinterval(values_max[i])
+            values_min_low[i], values_min_upp[i] = getinterval(values_min[i])
+            values_max_low[i], values_max_upp[i] = getinterval(values_max[i])
         end
 
-        # Compute current lower and upper bound of extrema on both the
-        # completed parts of the interval and the remaining ones.
-        if all(isfinite, values_min)
-            min_current_low = min(min_low, minimum(values_min_low))
-            min_current_upp = min(min_upp, minimum(values_min_upp))
-        else
-            min_current_low = Arf(-Inf, prec = precision(a))
-            min_current_upp = min(
-                min_upp,
-                minimum(
-                    filter(isfinite, values_min_upp),
-                    init = Arf(Inf, prec = precision(a)),
-                ),
-            )
-        end
-        if all(isfinite, values_max)
-            max_current_low = max(max_low, maximum(values_max_low))
-            max_current_upp = max(max_upp, maximum(values_max_upp))
-        else
-            max_current_low = max(
-                max_low,
-                maximum(
-                    filter(isfinite, values_max_low),
-                    init = Arf(-Inf, prec = precision(a)),
-                ),
-            )
-            max_current_upp = Arf(Inf, prec = precision(a))
-        end
+        # Compute current lower and upper bound of extrema
+        min_current_low, min_current_upp = _current_lower_upper_bound(
+            min,
+            min_low,
+            min_upp,
+            values_min_low,
+            values_min_upp,
+            values_min,
+        )
+        max_current_low, max_current_upp = _current_lower_upper_bound(
+            max,
+            max_low,
+            max_upp,
+            values_max_low,
+            values_max_upp,
+            values_max,
+        )
 
-        min_current_upp = min(min_current_upp, Arblib.ubound(point_value_min))
-        max_current_low = max(max_current_low, Arblib.lbound(point_value_max))
-
-        # Check if we have done the maximum number of function
-        # evaluations or reached the maximum depth
-        if evals >= maxevals || iterations >= depth
-            evals >= maxevals &&
-                verbose &&
-                @info "reached maximum number of evaluations $evals >= $maxevals"
-            iterations >= depth && verbose && @info "reached maximum depth $depth"
-            min_low = min_current_low
-            min_upp = min_current_upp
-            max_low = max_current_low
-            max_upp = max_current_upp
-            break
-        end
+        min_current_upp = min(min_current_upp, ubound(point_value_min))
+        max_current_low = max(max_current_low, lbound(point_value_max))
 
         # If we are not done split the intervals where extrema could
         # be located and which do not satisfy the tolerance
-        next_intervals = Vector{eltype(intervals)}()
+        next_intervals = sizehint!(empty(intervals), 2length(intervals))
         for i in eachindex(intervals)
             # Check if the extrema could be located in the interval
             possible_min = values_min_low[i] <= min_current_upp || !isfinite(values_min[i])
             possible_max = max_current_low <= values_max_upp[i] || !isfinite(values_max[i])
             if possible_min || possible_max
-                tol_min = let err = 2Arblib.radius(Arb, values_min[i])
-                    err <= atol || err / abs(values_min[i]) <= rtol
-                end
-                tol_max = let err = 2Arblib.radius(Arb, values_max[i])
-                    err <= atol || err / abs(values_max[i]) <= rtol
-                end
+                tol_min = check_tolerance(values_min[i]; atol, rtol)
+                tol_max = check_tolerance(values_max[i]; atol, rtol)
 
                 if (!possible_min || tol_min) && (!possible_max || tol_max)
                     # If the interval satisfies the tolerance then add
@@ -203,35 +236,54 @@ function extrema_enclosure(
                     Arblib.max!(max_upp, max_upp, values_max_upp[i])
                 else
                     # Otherwise split the interval further
-                    midpoint = (intervals[i][1] + intervals[i][2]) / 2
-                    push!(next_intervals, (intervals[i][1], midpoint))
-                    push!(next_intervals, (midpoint, intervals[i][2]))
+                    push!(
+                        next_intervals,
+                        bisect_interval(intervals[i]..., log_midpoint = log_bisection)...,
+                    )
                 end
             end
         end
         intervals = next_intervals
 
-        if isempty(intervals)
-            verbose && @info "no remaining intervals"
-            break
-        end
-
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
-              "minimum: $(Float64.((min_current_low, min_current_upp)))" *
-              "maximum: $(Float64.((max_current_low, max_current_upp)))"
+              "min: $(format_interval(min_current_low, min_current_upp)) " *
+              "max: $(format_interval(max_current_low, max_current_upp))"
+
+        non_finite_min = count(!isfinite, values_min)
+        non_finite_max = count(!isfinite, values_max)
+        verbose &&
+            (non_finite_min > 0 || non_finite_max) > 0 &&
+            @info "non-finite intervals: min: $(lpad(non_finite_min, 3)) " *
+                  "max: $(lpad(non_finite_max, 3))"
+
+        isempty(intervals) && break
+
+        # Check if we have done the maximum number of function
+        # evaluations or reached the maximum depth
+        if evals >= maxevals || iterations >= depth - depth_start
+            if verbose
+                evals >= maxevals &&
+                    @info "reached maximum number of evaluations $evals >= $maxevals"
+                iterations >= depth - depth_start && @info "reached maximum depth $depth"
+            end
+            min_low, min_upp = min_current_low, min_current_upp
+            max_low, max_upp = max_current_low, max_current_upp
+            break
+        end
     end
 
     res_min = Arb((min_low, min_upp))
     res_max = Arb((max_low, max_upp))
     if abs_value
         Arblib.nonnegative_part!(res_min, res_min)
+        Arblib.nonnegative_part!(res_max, res_max)
     end
     return res_min, res_max
 end
 
 """
-    minimum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, point_value_min, maxevals, depth, threaded, verbose)
+    minimum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_min, depth_start, maxevals, depth, threaded, verbose)
 
 Compute the minimum of the function `f` on the interval `[a, b]`.
 
@@ -246,35 +298,31 @@ function minimum_enclosure(
     atol = 0,
     rtol = sqrt(eps(one(a))),
     abs_value = false,
+    log_bisection = false,
     point_value_min::Arb = Arb(Inf, prec = precision(a)),
+    depth_start::Integer = 0,
     maxevals::Integer = 1000,
     depth::Integer = 20,
     threaded = false,
     verbose = false,
 )
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     maybe_abs = abs_value ? abs : identity
 
     if a == b
         res = maybe_abs(f(Arb(a)))
-        if abs_value
-            return Arblib.nonnegative_part!(res, res)
-        else
-            return res
-        end
+        abs_value && Arblib.nonnegative_part!(res, res)
+        return res
     end
 
-    # List of intervals left to process
-    intervals = [(a, b)]
+    # List of intervals
+    intervals = bisect_interval_recursive(a, b, depth_start, log_midpoint = log_bisection)
 
     # Stores the lower and upper bound of the minimum on the parts of
     # the interval which are completed. Initially they are set to the
     # neutral element for minimum.
-    min_low = Arf(Inf, prec = precision(a))
-    min_upp = Arf(Inf, prec = precision(a))
+    min_low, min_upp = Arf(Inf, prec = precision(a)), Arf(Inf, prec = precision(a))
 
     iterations = 0
     evals = 0
@@ -315,45 +363,28 @@ function minimum_enclosure(
         values_low = similar(values, Arf)
         values_upp = similar(values, Arf)
         for i in eachindex(values)
-            values_low[i], values_upp[i] = Arblib.getinterval(values[i])
+            values_low[i], values_upp[i] = getinterval(values[i])
         end
 
-        # Compute current lower and upper bound of minimum on both the
-        # completed parts of the interval and the remaining ones.
-        if all(isfinite, values)
-            min_current_low = min(min_low, minimum(values_low))
-            min_current_upp = min(min_upp, minimum(values_upp))
-        else
-            min_current_low = Arf(-Inf, prec = precision(a))
-            min_current_upp = min(
-                min_upp,
-                minimum(filter(isfinite, values_upp), init = Arf(Inf, prec = precision(a))),
-            )
-        end
+        # Compute current lower and upper bound of minimum
+        min_current_low, min_current_upp = _current_lower_upper_bound(
+            min,
+            min_low,
+            min_upp,
+            values_low,
+            values_upp,
+            values,
+        )
 
-        min_current_upp = min(min_current_upp, Arblib.ubound(point_value_min))
-
-        # Check if we have done the maximum number of function
-        # evaluations or reached the maximum depth
-        if evals >= maxevals || iterations >= depth
-            evals >= maxevals &&
-                verbose &&
-                @info "reached maximum number of evaluations $evals >= $maxevals"
-            iterations >= depth && verbose && @info "reached maximum depth $depth"
-            min_low = min_current_low
-            min_upp = min_current_upp
-            break
-        end
+        min_current_upp = min(min_current_upp, ubound(point_value_min))
 
         # If we are not done split the intervals where minimum could
         # be located and which do not satisfy the tolerance
-        next_intervals = Vector{eltype(intervals)}()
+        next_intervals = sizehint!(empty(intervals), 2length(intervals))
         for i in eachindex(intervals)
             # Check if the minimum could be located in the interval
             if values_low[i] <= min_current_upp || !isfinite(values[i])
-                err = 2Arblib.radius(Arb, values[i])
-
-                if err <= atol || err / abs(values[i]) <= rtol
+                if check_tolerance(values[i]; atol, rtol)
                     # If the interval satisfies the tolerance then add
                     # it to the lower and upper bound of the minimum
                     # for the finished parts of the interval.
@@ -361,33 +392,44 @@ function minimum_enclosure(
                     Arblib.min!(min_upp, min_upp, values_upp[i])
                 else
                     # Otherwise split the interval further
-                    midpoint = (intervals[i][1] + intervals[i][2]) / 2
-                    push!(next_intervals, (intervals[i][1], midpoint))
-                    push!(next_intervals, (midpoint, intervals[i][2]))
+                    push!(
+                        next_intervals,
+                        bisect_interval(intervals[i]..., log_midpoint = log_bisection)...,
+                    )
                 end
             end
         end
         intervals = next_intervals
 
-        if isempty(intervals)
-            verbose && @info "no remaining intervals"
-            break
-        end
-
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
-              "minimum: $(Float64.((min_current_low, min_current_upp)))"
+              "minimum: $(format_interval(min_current_low, min_current_upp))"
+
+        non_finite = count(!isfinite, values)
+        verbose && non_finite > 0 && @info "non-finite intervals: $non_finite"
+
+        isempty(intervals) && break
+
+        # Check if we have done the maximum number of function
+        # evaluations or reached the maximum depth
+        if evals >= maxevals || iterations >= depth - depth_start
+            if verbose
+                evals >= maxevals &&
+                    @info "reached maximum number of evaluations $evals >= $maxevals"
+                iterations >= depth - depth_start && @info "reached maximum depth $depth"
+            end
+            min_low, min_upp = min_current_low, min_current_upp
+            break
+        end
     end
 
     res = Arb((min_low, min_upp))
-    if abs_value
-        Arblib.nonnegative_part!(res, res)
-    end
+    abs_value && Arblib.nonnegative_part!(res, res)
     return res
 end
 
 """
-    maximum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, point_value_max, maxevals, depth, threaded, verbose)
+    maximum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_max, depth_start, maxevals, depth, threaded, verbose)
 
 Compute the maximum of the function `f` on the interval `[a, b]`.
 
@@ -402,15 +444,15 @@ function maximum_enclosure(
     atol = 0,
     rtol = sqrt(eps(one(a))),
     abs_value = false,
+    log_bisection = false,
     point_value_max::Arb = Arb(-Inf, prec = precision(a)),
+    depth_start::Integer = 0,
     maxevals::Integer = 1000,
     depth::Integer = 20,
     threaded = false,
     verbose = false,
 )
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     maybe_abs = abs_value ? abs : identity
 
@@ -418,14 +460,13 @@ function maximum_enclosure(
         return maybe_abs(f(Arb(a)))
     end
 
-    # List of intervals left to process
-    intervals = [(a, b)]
+    # List of intervals
+    intervals = bisect_interval_recursive(a, b, depth_start, log_midpoint = log_bisection)
 
     # Stores the lower and upper bound of the maximum on the parts of
     # the interval which are completed. Initially they are set to the
     # neutral element for maximum.
-    max_low = Arf(-Inf, prec = precision(a))
-    max_upp = Arf(-Inf, prec = precision(a))
+    max_low, max_upp = Arf(-Inf, prec = precision(a)), Arf(-Inf, prec = precision(a))
 
     iterations = 0
     evals = 0
@@ -466,48 +507,28 @@ function maximum_enclosure(
         values_low = similar(values, Arf)
         values_upp = similar(values, Arf)
         for i in eachindex(values)
-            values_low[i], values_upp[i] = Arblib.getinterval(Arf, values[i])
+            values_low[i], values_upp[i] = getinterval(Arf, values[i])
         end
 
-        # Compute current lower and upper bound of maximum on both the
-        # completed parts of the interval and the remaining ones.
-        if all(isfinite, values)
-            max_current_low = max(max_low, maximum(values_low))
-            max_current_upp = max(max_upp, maximum(values_upp))
-        else
-            max_current_low = max(
-                max_low,
-                maximum(
-                    filter(isfinite, values_low),
-                    init = Arf(-Inf, prec = precision(a)),
-                ),
-            )
-            max_current_upp = Arf(Inf, prec = precision(a))
-        end
+        # Compute current lower and upper bound of maximum
+        max_current_low, max_current_upp = _current_lower_upper_bound(
+            max,
+            max_low,
+            max_upp,
+            values_low,
+            values_upp,
+            values,
+        )
 
-        max_current_low = max(max_current_low, Arblib.lbound(point_value_max))
-
-        # Check if we have done the maximum number of function
-        # evaluations or reached the maximum depth
-        if evals >= maxevals || iterations >= depth
-            evals >= maxevals &&
-                verbose &&
-                @info "reached maximum number of evaluations $evals >= $maxevals"
-            iterations >= depth && verbose && @info "reached maximum depth $depth"
-            max_low = max_current_low
-            max_upp = max_current_upp
-            break
-        end
+        max_current_low = max(max_current_low, lbound(point_value_max))
 
         # If we are not done split the intervals where maximum could
         # be located and which do not satisfy the tolerance
-        next_intervals = Vector{eltype(intervals)}()
+        next_intervals = sizehint!(empty(intervals), 2length(intervals))
         for i in eachindex(intervals)
             # Check if the maximum could be located in the interval
             if max_current_low <= values_upp[i] || !isfinite(values[i])
-                err = 2Arblib.radius(Arb, values[i])
-
-                if err <= atol || err / abs(values[i]) <= rtol
+                if check_tolerance(values[i]; atol, rtol)
                     # If the interval satisfies the tolerance then add
                     # it to the lower and upper bound of the maximum
                     # for the finished parts of the interval.
@@ -515,23 +536,38 @@ function maximum_enclosure(
                     Arblib.max!(max_upp, max_upp, values_upp[i])
                 else
                     # Otherwise split the interval further
-                    midpoint = (intervals[i][1] + intervals[i][2]) / 2
-                    push!(next_intervals, (intervals[i][1], midpoint))
-                    push!(next_intervals, (midpoint, intervals[i][2]))
+                    push!(
+                        next_intervals,
+                        bisect_interval(intervals[i]..., log_midpoint = log_bisection)...,
+                    )
                 end
             end
         end
         intervals = next_intervals
 
-        if isempty(intervals)
-            verbose && @info "no remaining intervals"
-            break
-        end
-
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
-              "maximum: $(Float64.((max_current_low, max_current_upp)))"
+              "maximum: $(format_interval(max_current_low, max_current_upp))"
+
+        non_finite = count(!isfinite, values)
+        verbose && non_finite > 0 && @info "non-finite intervals: $non_finite"
+
+        isempty(intervals) && break
+
+        # Check if we have done the maximum number of function
+        # evaluations or reached the maximum depth
+        if evals >= maxevals || iterations >= depth - depth_start
+            if verbose
+                evals >= maxevals &&
+                    @info "reached maximum number of evaluations $evals >= $maxevals"
+                iterations >= depth - depth_start && @info "reached maximum depth $depth"
+            end
+            max_low, max_upp = max_current_low, max_current_upp
+            break
+        end
     end
 
-    return Arb((max_low, max_upp))
+    res = Arb((max_low, max_upp))
+    abs_value && Arblib.nonnegative_part!(res, res)
+    return res
 end

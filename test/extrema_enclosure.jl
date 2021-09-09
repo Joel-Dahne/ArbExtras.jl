@@ -126,5 +126,50 @@
             ArbExtras.maximum_enclosure(x -> -2x, Arf(2), Arf(3), threaded = true),
             ArbExtras.maximum_enclosure(x -> -2x, Arf(2), Arf(3)),
         )
+
+        # Verbose = true
+        @test_logs (:info, "reached maximum depth 20") match_mode = :any ArbExtras.extrema_enclosure(
+            inv,
+            Arf(0),
+            Arf(1),
+            verbose = true,
+        )
+        @test_logs (:info, "reached maximum depth 20") match_mode = :any ArbExtras.minimum_enclosure(
+            inv,
+            Arf(0),
+            Arf(1),
+            verbose = true,
+        )
+        @test_logs (:info, "reached maximum depth 20") match_mode = :any ArbExtras.maximum_enclosure(
+            inv,
+            Arf(0),
+            Arf(1),
+            verbose = true,
+        )
+
+        @test_logs (:info, "reached maximum number of evaluations 117 >= 100") match_mode =
+            :any ArbExtras.extrema_enclosure(
+            sin ∘ exp,
+            Arf(0),
+            Arf(10),
+            maxevals = 100,
+            verbose = true,
+        )
+        @test_logs (:info, "reached maximum number of evaluations 107 >= 100") match_mode =
+            :any ArbExtras.minimum_enclosure(
+            sin ∘ exp,
+            Arf(0),
+            Arf(10),
+            maxevals = 100,
+            verbose = true,
+        )
+        @test_logs (:info, "reached maximum number of evaluations 111 >= 100") match_mode =
+            :any ArbExtras.maximum_enclosure(
+            sin ∘ exp,
+            Arf(0),
+            Arf(10),
+            maxevals = 100,
+            verbose = true,
+        )
     end
 end

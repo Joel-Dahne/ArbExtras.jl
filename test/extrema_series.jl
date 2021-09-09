@@ -67,11 +67,42 @@
             (6, NaN),
         )
 
-        # Check that it throws an error if the computations with the
-        # endpoints can not be done exactly
-        @test_throws AssertionError ArbExtras.extrema_series(sin, Arf(1), Arf(1e300))
-        @test_throws AssertionError ArbExtras.minimum_series(sin, Arf(1), Arf(1e300))
-        @test_throws AssertionError ArbExtras.maximum_series(sin, Arf(1), Arf(1e300))
+        # Check that it gives a correct result even if the
+        # computations with the endpoints cannot be done exactly. I
+        # have not been able to come up with an example for which we
+        # get a wrong result without adding the endpoints explicitly.
+        # If we are working with such large numbers the enclosure we
+        # get is typically very large and includes the true result
+        # anyway.
+
+        @test all(
+            Arblib.overlaps.(
+                ArbExtras.extrema_series(x -> x^2, Arf(1), Arf(1e300))[1:2],
+                (Arb(-1), Arb(1e300)^2),
+            ),
+        )
+        @test all(
+            Arblib.overlaps.(
+                ArbExtras.extrema_series(x -> x^2, Arf(-1e300), Arf(-1))[1:2],
+                (Arb(-1), Arb(1e300)^2),
+            ),
+        )
+        @test Arblib.overlaps(
+            ArbExtras.minimum_series(x -> x^2, Arf(1), Arf(1e300))[1],
+            Arb(-1),
+        )
+        @test Arblib.overlaps(
+            ArbExtras.minimum_series(x -> x^2, Arf(-1e300), Arf(-1))[1],
+            Arb(-1),
+        )
+        @test Arblib.overlaps(
+            ArbExtras.maximum_series(x -> -x^2, Arf(1), Arf(1e300))[1],
+            Arb(1),
+        )
+        @test Arblib.overlaps(
+            ArbExtras.maximum_series(x -> -x^2, Arf(-1e300), Arf(-1))[1],
+            Arb(1),
+        )
 
         # Non-finite restterm
         @test all(isnan, ArbExtras.extrema_series(x -> inv(x - sin(x)), Arf(0.1), Arf(1)))

@@ -124,16 +124,14 @@ function isolate_roots(
     check_unique::Bool = true,
     verbose = false,
 )
-    isfinite(a) && isfinite(b) ||
-        throw(ArgumentError("a and b must be finite, got a = $a and b = $b"))
-    a <= b || throw(ArgumentError("must have a <= b, got a = $a and b = $b"))
+    check_interval(a, b)
 
     if a == b
         fa = f(Arb(a))
         if Arblib.contains_zero(fa)
             return [(a, b)], [iszero(fa)]
         else
-            return Vector{NTuple{2,Arf}}(), Vector{Bool}()
+            return Vector{NTuple{2,Arf}}(), BitVector()
         end
     end
 
@@ -156,12 +154,7 @@ function isolate_roots(
                 push!(flags, true)
             elseif maybe
                 if iterations < depth
-                    (lower, upper) = interval
-                    midpoint = lower + upper
-                    midpoint = Arblib.mul_2exp!(midpoint, midpoint, -1)
-
-                    push!(next_intervals, (lower, midpoint))
-                    push!(next_intervals, (midpoint, upper))
+                    push!(next_intervals, bisect_interval(interval...)...)
                 else
                     # If we are on the last iteration don't split the interval
                     push!(next_intervals, interval)

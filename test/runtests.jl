@@ -3,6 +3,8 @@ using Arblib, ArbExtras, Test
 include("demo_problems.jl")
 
 @testset "ArbExtras" begin
+    include("utilities.jl")
+
     include("isolate_roots.jl")
     include("refine_root.jl")
 

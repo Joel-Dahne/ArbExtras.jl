@@ -3,6 +3,7 @@ module ArbExtras
 using Arblib
 
 include("temporary.jl")
+include("utilities.jl")
 
 include("isolate_roots.jl")
 include("refine_root.jl")
