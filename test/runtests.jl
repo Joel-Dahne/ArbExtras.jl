@@ -1,4 +1,4 @@
-using Arblib, ArbExtras, Test
+using Arblib, ArbExtras, Random, SpecialFunctions, Test
 
 include("demo_problems.jl")
 
@@ -11,4 +11,6 @@ include("demo_problems.jl")
     include("extrema_polynomial.jl")
     include("extrema_series.jl")
     include("extrema_enclosure.jl")
+
+    include("special_functions.jl")
 end
