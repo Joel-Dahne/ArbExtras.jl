@@ -12,6 +12,8 @@ include("extrema_polynomial.jl")
 include("extrema_series.jl")
 include("extrema_enclosure.jl")
 
+include("bounded_by.jl")
+
 include("special_functions.jl")
 
 include("integrate.jl")
