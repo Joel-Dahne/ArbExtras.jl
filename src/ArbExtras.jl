@@ -14,4 +14,6 @@ include("extrema_enclosure.jl")
 
 include("special_functions.jl")
 
+include("integrate.jl")
+
 end # module
