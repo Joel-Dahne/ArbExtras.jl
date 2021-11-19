@@ -22,11 +22,14 @@ demo_problems_definitions = [
     demo_problem(i, thin = false)
 
 Return a demo problem for testing `extrema_enclosure` and
-`extrema_series`. Returns `(f, (a, b), y)` where `f` is the function,
-`(a, b)` gives the interval to use and `y` is the minimum.
+`extrema_series`. Returns `(f, (a, b), fmin, fmax, fabsmin, fabsmax)`
+where `f` is the function, `(a, b)` gives the interval to use, `fmin`
+and `fmax` are the minimum and maximum value on the interval and
+`fabsmin` and `fabsmax` are the minimum and maximum value of the
+absolute value of `f`.
 
-If `thin = true` then don't return the full interval but a thinner one
-around the location of the minimum.
+If `thin = true` then don't return the full interval `[a, b]` but a
+thinner one around the location of the minimum.
 
 The problems are taken from
 http://infinity77.net/global_optimization/test_functions_1d.html. The
