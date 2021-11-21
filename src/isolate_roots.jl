@@ -129,22 +129,22 @@ function isolate_roots(
     if a == b
         fa = f(Arb(a))
         if Arblib.contains_zero(fa)
-            return [(a, b)], [iszero(fa)]
+            return [(a, b)], BitVector((iszero(fa),))
         else
             return Vector{NTuple{2,Arf}}(), BitVector()
         end
     end
 
     intervals = [(a, b)]
-    iterations = 0
 
     found = Vector{NTuple{2,Arf}}()
     flags = BitVector()
 
+    iterations = 0
     while !isempty(intervals) && iterations < depth
         iterations += 1
 
-        next_intervals = Vector{eltype(intervals)}()
+        next_intervals = empty(intervals)
 
         for interval in intervals
             maybe, unique = check_interval(f, interval...; check_unique)
@@ -177,8 +177,8 @@ function isolate_roots(
               "found: $(lpad(length(found), 2)), " *
               "remaining intervals: $(length(intervals))"
 
-    found = [found; intervals]
-    flags = [flags; zeros(Bool, length(intervals))]
+    append!(found, intervals)
+    append!(flags, zeros(Bool, length(intervals)))
 
     p = sortperm(found, by = interval -> interval[1])
 
