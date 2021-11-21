@@ -82,7 +82,7 @@ function integrate_gauss_legendre(f, a::Arb, b::Arb)
 end
 
 """
-    integrate(f, a::Arb, b::Arb; atol, rtol, maxevals, depth, verbose)
+    integrate(f, a::Arb, b::Arb; atol, rtol, depth_start, maxevals, depth, verbose)
 
 Compute an enclosure of the integral of `f on the interval `[a, b]`.
 
@@ -99,6 +99,13 @@ on the interval as a whole. This means that even if it finishes before
 reaching the maximum depth or the maximum number of evaluations the
 result as a whole might not satisfy the given tolerance.
 
+The argument `depth_start` bisect the interval using
+[`bisect_interval_recursive`](@ref) before starting to compute the
+integral. This can be useful if it is known beforehand that a certain
+number of bisections will be necessary before the enclosures get good
+enough. It defaults to `0` which corresponds to not bisecting the
+interval at all before starting.
+
 The arguments `maxevals` and `depth` can be used to limit the number
 of function evaluations and the number of bisections of the interval
 respectively.
@@ -111,13 +118,14 @@ function integrate(
     b::Arb;
     atol = 0,
     rtol = sqrt(eps(one(a))),
+    depth_start::Integer = 0,
     maxevals::Integer = 1000,
     depth::Integer = 20,
     verbose = false,
 )
     isfinite(a) && isfinite(b) || return Arblib.indeterminate!(zero(a))
 
-    intervals = [(a, b)]
+    intervals = bisect_interval_recursive(a, b, depth_start)
 
     integral = zero(a)
 
