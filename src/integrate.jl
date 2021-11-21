@@ -152,8 +152,7 @@ function integrate(
                 integral += integral_part
             else
                 remaining_intervals += 1
-                mid = (a + b) / 2
-                push!(next_intervals, (a, mid), (mid, b))
+                push!(next_intervals, bisect_interval(a, b)...)
             end
         end
 
