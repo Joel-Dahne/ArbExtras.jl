@@ -129,7 +129,7 @@ function isolate_roots(
     if a == b
         fa = f(Arb(a))
         if Arblib.contains_zero(fa)
-            return [(a, b)], [iszero(fa)]
+            return [(a, b)], BitVector((iszero(fa),))
         else
             return Vector{NTuple{2,Arf}}(), BitVector()
         end
