@@ -40,4 +40,15 @@ end
     )
 
     @test isnan(ArbExtras.integrate(inv, Arb(-1), Arb(1)))
+
+    # depth_start > 0
+    @test Arblib.overlaps(
+        ArbExtras.integrate(sin, Arb(0), Arb(1), depth_start = 4),
+        1 - cos(Arb(1)),
+    )
+
+    @test Arblib.overlaps(
+        ArbExtras.integrate(x -> x^3, Arb(0), Arb(1), depth_start = 5),
+        Arb(1 // 4),
+    )
 end

@@ -52,7 +52,28 @@ function bisect_interval(a::Arf, b::Arf; log_midpoint::Bool = false)
 end
 
 """
-    bisect_interval_recursive(a::Arf, b::Arf, depth::Integer; log_midpoint::Bool = false)
+    bisect_interval(a::Arb, b::Arb; log_midpoint::Bool = false)
+
+Returns two tuples, `(a, midpoint)` and `(midpoint, b)`, which
+corresponds to splitting the interval in half.
+
+The method currently doesn't support `log_midpoint = true`, it is
+there to make the signature the same as for the `Arf` version.
+
+The value of `midpoint` is aliased in the two tuples and care should
+therefore be taken if doing inplace operations on it.
+"""
+function bisect_interval(a::Arb, b::Arb; log_midpoint::Bool = false)
+    log_midpoint && throw(ArgumentError("log_midpoint currently not supported for Arb"))
+
+    mid = a + b
+    Arblib.mul_2exp!(mid, mid, -1)
+
+    return (a, mid), (mid, b)
+end
+
+"""
+    bisect_interval_recursive(a::T, b::T, depth::Integer; log_midpoint::Bool = false) where {T<:Union{Arf,Arb}}
 
 Recursively bisect the interval `[a, b]` a number of `depth` times.
 The bisection is done using [`bisect_interval`](@ref) and it returns a
@@ -61,14 +82,14 @@ vector with `2^depth` intervals.
 It accepts the same arguments as [`bisect_interval`](@ref).
 """
 function bisect_interval_recursive(
-    a::Arf,
-    b::Arf,
+    a::T,
+    b::T,
     depth::Integer;
     log_midpoint::Bool = false,
-)
+) where {T<:Union{Arf,Arb}}
     depth >= 0 || Throw(ArgumentError("depth needs to be non-negative, got $depth"))
 
-    res = Vector{NTuple{2,Arf}}(undef, 2^depth)
+    res = Vector{NTuple{2,T}}(undef, 2^depth)
     res[1] = (a, b)
     @inbounds for i = 1:depth
         for j in reverse(1:2^(i-1))
