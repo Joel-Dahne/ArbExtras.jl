@@ -11,7 +11,7 @@ The approximation is given by
 where
 ```
 x₁ = (b - a) / 2 * sqrt(3) / 3 + (b + a) / 2
-x₁ = -(b - a) / 2 * sqrt(3) / 3 + (b + a) / 2
+x₂ = -(b - a) / 2 * sqrt(3) / 3 + (b + a) / 2
 ```
 are quadrature nodes. The remainder term is enclosed by
 ```
@@ -35,21 +35,50 @@ degree 4 and only the zeroth and fourth order term are ever used.
 - **TODO:** Allow giving an separate function for computing derivative?
 """
 function integrate_gauss_legendre(f, a::Arb, b::Arb)
-    f_series = f(ArbSeries([union(a, b), 1], degree = 4))
+    bma = b - a
+
+    # x_series = ArbSeries((union(a, b), 1), degree = 4)
+    x_series = ArbSeries(degree = 4, prec = precision(bma))
+    # We need to do it in this order so that the degree of the
+    # polynomial is correct when we set the constant coefficient.
+    x_series[1] = 1
+    Arblib.union!(Arblib.ref(x_series, 0), a, b)
+
+    f_series = f(x_series)
 
     # If the fourth derivative of f is not finite compute an enclosure
     # of the integral using the enclosure of f on the interval [a, b].
-    isfinite(f_series) || return (b - a) * f_series[0]
+    isfinite(Arblib.ref(f_series, 4)) ||
+        return Arblib.mul!(bma, bma, Arblib.ref(f_series, 0))
 
-    d4f = f_series[4] * factorial(4) # Fourth derivative of f
-    remainder = (b - a)^5 / 4320 * d4f
+    # remainder = (b - a)^5 / 4320 * f_series[4] * factorial(4)
+    remainder = Arblib.pow!(zero(bma), bma, UInt(5))
+    Arblib.mul!(remainder, remainder, Arblib.ref(f_series, 4))
+    Arblib.div!(remainder, remainder, 180)
 
-    x₁ = (b - a) / 2 * sqrt(Arb(3)) / 3 + (b + a) / 2
-    x₂ = -(b - a) / 2 * sqrt(Arb(3)) / 3 + (b + a) / 2
+    # v = (b - a) / 2 * sqrt(Arb(3)) / 3
+    v = Arblib.sqrt!(zero(bma), UInt(3))
+    Arblib.mul!(v, v, bma)
+    Arblib.div!(v, v, 6)
 
-    approximation = (b - a) / 2 * (f(x₁) + f(x₂))
+    # Set x₁ = (b + a) / 2 to begin with
+    x₁ = b + a
+    Arblib.mul_2exp!(x₁, x₁, -1)
 
-    return approximation + remainder
+    # x₂ = (b + a) / 2 - v = x₁ - v
+    x₂ = Arblib.sub!(zero(bma), x₁, v)
+
+    # x₁ = (b + a) / 2 - v = x₁ - v
+    Arblib.add!(x₁, x₁, v)
+
+    # approximation = (b - a) / 2 * (f(x₁) + f(x₂))
+    approximation = f(x₁)
+    Arblib.add!(approximation, approximation, f(x₂))
+    Arblib.mul!(approximation, approximation, bma)
+    Arblib.mul_2exp!(approximation, approximation, -1)
+
+    # Return approximation + remainder
+    return Arblib.add!(approximation, approximation, remainder)
 end
 
 """
