@@ -177,8 +177,8 @@ function isolate_roots(
               "found: $(lpad(length(found), 2)), " *
               "remaining intervals: $(length(intervals))"
 
-    found = [found; intervals]
-    flags = [flags; zeros(Bool, length(intervals))]
+    append!(found, intervals)
+    append!(flags, zeros(Bool, length(intervals)))
 
     p = sortperm(found, by = interval -> interval[1])
 
