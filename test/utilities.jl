@@ -25,10 +25,24 @@
         ArbExtras.bisect_interval(a, b, log_midpoint = true),
         ((a, Arf(0)), (Arf(0), b)),
     )
+
+    a, b = Arb(0), Arb(2)
+    @test isequal(ArbExtras.bisect_interval(a, b), ((a, Arb(1)), (Arb(1), b)))
+    a, b = Arb(0), Arb(Inf)
+    @test isequal(ArbExtras.bisect_interval(a, b), ((a, Arb(Inf)), (Arb(Inf), b)))
+    a, b, = Arb(0, prec = 80), Arb(2, prec = 90)
+    @test precision(ArbExtras.bisect_interval(a, b)[1][2]) == 90
 end
 
 @testset "bisect_interval_recursive" begin
     a, b = Arf(0), Arf(8)
+    @test ArbExtras.bisect_interval_recursive(a, b, 0) == [(0, 8)]
+    @test ArbExtras.bisect_interval_recursive(a, b, 1) == [(0, 4), (4, 8)]
+    @test ArbExtras.bisect_interval_recursive(a, b, 2) == [(0, 2), (2, 4), (4, 6), (6, 8)]
+    @test ArbExtras.bisect_interval_recursive(a, b, 3) ==
+          [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8)]
+
+    a, b = Arb(0), Arb(8)
     @test ArbExtras.bisect_interval_recursive(a, b, 0) == [(0, 8)]
     @test ArbExtras.bisect_interval_recursive(a, b, 1) == [(0, 4), (4, 8)]
     @test ArbExtras.bisect_interval_recursive(a, b, 2) == [(0, 2), (2, 4), (4, 6), (6, 8)]
