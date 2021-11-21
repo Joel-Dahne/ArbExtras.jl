@@ -136,15 +136,15 @@ function isolate_roots(
     end
 
     intervals = [(a, b)]
-    iterations = 0
 
     found = Vector{NTuple{2,Arf}}()
     flags = BitVector()
 
+    iterations = 0
     while !isempty(intervals) && iterations < depth
         iterations += 1
 
-        next_intervals = Vector{eltype(intervals)}()
+        next_intervals = empty(intervals)
 
         for interval in intervals
             maybe, unique = check_interval(f, interval...; check_unique)
