@@ -32,7 +32,7 @@ function check_interval(f, a::Arf, b::Arf; check_unique::Bool = true)
     b_sign = Arblib.sgn_nonzero(f(Arb(b)))
 
     if a_sign * b_sign < 0
-        df = f(ArbSeries([x, 1]))[1]
+        df = f(ArbSeries((x, 1)))[1]
         return true, !Arblib.contains_zero(df)
     else
         return true, false

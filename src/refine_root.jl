@@ -68,7 +68,7 @@ function refine_root(
     if f isa ArbPoly
         df = Arblib.derivative(f)
     else
-        series = ArbSeries([root, 1])
+        series = ArbSeries((root, 1))
     end
 
     verbose && @info "enclosure: $root"

@@ -52,7 +52,7 @@ function extrema_series(
     x = Arb((a, b))
 
     # Compute rest term of the Taylor series
-    p = f(ArbSeries([x, one(x)], degree = degree + 1))
+    p = f(ArbSeries((x, 1), degree = degree + 1))
 
     # Check if f happens to be monotonic on the interval, in that case
     # evaluate on the endpoints only
@@ -91,7 +91,7 @@ function extrema_series(
     end
 
     # Compute the Taylor series at the midpoint of x
-    q = f(ArbSeries([Arblib.midref(x), one(x)]; degree))
+    q = f(ArbSeries((Arblib.midref(x), 1); degree))
 
     # We want to enclose the extrema between c and d. However due to
     # rounding the values of c and d might not be known exactly. We
@@ -152,7 +152,7 @@ function minimum_series(
     x = Arb((a, b))
 
     # Compute rest term of the Taylor series
-    p = f(ArbSeries([x, one(x)], degree = degree + 1))
+    p = f(ArbSeries((x, 1), degree = degree + 1))
 
     # Check if f happens to be monotonic on the interval, in that case
     # evaluate on the endpoints where the maximum could be attained
@@ -194,7 +194,7 @@ function minimum_series(
     end
 
     # Compute the Taylor series at the midpoint of x
-    q = f(ArbSeries([Arblib.midref(x), one(x)]; degree))
+    q = f(ArbSeries((Arblib.midref(x), 1); degree))
 
     # We want to enclose the minimum between c and d. However due to
     # rounding the values of c and d might not be known exactly. We
@@ -253,7 +253,7 @@ function maximum_series(
     x = Arb((a, b))
 
     # Compute rest term of the Taylor series
-    p = f(ArbSeries([x, one(x)], degree = degree + 1))
+    p = f(ArbSeries((x, 1), degree = degree + 1))
 
     # Check if f happens to be monotonic on the interval, in that case
     # evaluate on the endpoints where the maximum could be attained
@@ -286,7 +286,7 @@ function maximum_series(
     end
 
     # Compute the Taylor series at the midpoint of x
-    q = f(ArbSeries([Arblib.midref(x), one(x)]; degree))
+    q = f(ArbSeries((Arblib.midref(x), 1); degree))
 
     # We want to enclose the maximum between c and d. However due to
     # rounding the values of c and d might not be known exactly. We
