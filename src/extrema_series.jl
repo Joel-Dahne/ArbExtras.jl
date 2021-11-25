@@ -56,7 +56,7 @@ function extrema_series(
 
     # Check if f happens to be monotonic on the interval, in that case
     # evaluate on the endpoints only
-    if !Arblib.contains_zero(p[1])
+    if !Arblib.contains_zero(Arblib.ref(p, 1))
         verbose && @info "monotonic on interval - evaluate on endpoints"
         fa, fb = f(Arb(a)), f(Arb(b))
         if abs_value
@@ -79,7 +79,7 @@ function extrema_series(
 
     restterm = let y = zero(x)
         Arblib.set!(Arblib.radref(y), Arblib.radref(x))
-        y^(degree + 1) * p[degree+1]
+        y^(degree + 1) * Arblib.ref(p, degree + 1)
     end
 
     # If the restterm is finite the result will never be finite,
@@ -156,7 +156,7 @@ function minimum_series(
 
     # Check if f happens to be monotonic on the interval, in that case
     # evaluate on the endpoints where the maximum could be attained
-    if !Arblib.contains_zero(p[1])
+    if !Arblib.contains_zero(Arblib.ref(p, 1))
         verbose && @info "monotonic on interval - evaluate on endpoints"
         if abs_value
             fa, fb = f(Arb(a)), f(Arb(b))
@@ -170,7 +170,7 @@ function minimum_series(
                 res = min(abs(fa), abs(fb))
                 Arblib.nonnegative_part!(res, res)
             end
-        elseif Arblib.ispositive(p[1])
+        elseif Arblib.ispositive(Arblib.ref(p, 1))
             # Minimum is attained at the left endpoint
             res = f(Arb(a))
         else
@@ -182,7 +182,7 @@ function minimum_series(
 
     restterm = let y = zero(x)
         Arblib.set!(Arblib.radref(y), Arblib.radref(x))
-        y^(degree + 1) * p[degree+1]
+        y^(degree + 1) * Arblib.ref(p, degree + 1)
     end
 
     # If the restterm is finite the result will never be finite,
@@ -257,12 +257,12 @@ function maximum_series(
 
     # Check if f happens to be monotonic on the interval, in that case
     # evaluate on the endpoints where the maximum could be attained
-    if !Arblib.contains_zero(p[1])
+    if !Arblib.contains_zero(Arblib.ref(p, 1))
         verbose && @info "monotonic on interval - evaluate on endpoints"
         if abs_value
             # Maximum could be attained at either endpoint
             res = max(abs(f(Arb(a))), abs(f(Arb(b))))
-        elseif Arblib.ispositive(p[1])
+        elseif Arblib.ispositive(Arblib.ref(p, 1))
             # Maximum is attained at the right endpoint
             res = f(Arb(b))
         else
@@ -274,7 +274,7 @@ function maximum_series(
 
     restterm = let y = zero(x)
         Arblib.set!(Arblib.radref(y), Arblib.radref(x))
-        y^(degree + 1) * p[degree+1]
+        y^(degree + 1) * Arblib.ref(p, degree + 1)
     end
 
     # If the restterm is finite the result will never be finite,
