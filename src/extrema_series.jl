@@ -77,15 +77,12 @@ function extrema_series(
         end
     end
 
-    restterm = let y = zero(x)
-        Arblib.set!(Arblib.radref(y), Arblib.radref(x))
-        y^(degree + 1) * Arblib.ref(p, degree + 1)
-    end
+    remainder = taylor_remainder(p, x)
 
-    # If the restterm is finite the result will never be finite,
+    # If the remainder is finite the result will never be finite,
     # return the zeroth order enclosure
-    if !isfinite(restterm)
-        verbose && @info "non-finite restterm"
+    if !isfinite(remainder)
+        verbose && @info "non-finite remainder"
         res = maybe_abs(p[0])
         return res, copy(res), copy(res)
     end
@@ -120,7 +117,7 @@ function extrema_series(
         Arblib.max!(res[2], res[2], y)
     end
 
-    return res[1] + restterm, res[2] + restterm, maybe_abs(q[0])
+    return res[1] + remainder, res[2] + remainder, maybe_abs(q[0])
 end
 """
     minimum_series(f, a::Arf, b::Arf; degree, abs_value, verbose)
@@ -180,15 +177,12 @@ function minimum_series(
         return res, Arb(NaN, prec = precision(a))
     end
 
-    restterm = let y = zero(x)
-        Arblib.set!(Arblib.radref(y), Arblib.radref(x))
-        y^(degree + 1) * Arblib.ref(p, degree + 1)
-    end
+    remainder = taylor_remainder(p, x)
 
-    # If the restterm is finite the result will never be finite,
+    # If the remainder is finite the result will never be finite,
     # return the zeroth order enclosure
-    if !isfinite(restterm)
-        verbose && @info "non-finite restterm"
+    if !isfinite(remainder)
+        verbose && @info "non-finite remainder"
         res = maybe_abs(p[0])
         return res, copy(res)
     end
@@ -219,7 +213,7 @@ function minimum_series(
         Arblib.min!(res, res, maybe_abs(q(union(d, lbound(Arb, d)))))
     end
 
-    return res + restterm, maybe_abs(q[0])
+    return res + remainder, maybe_abs(q[0])
 end
 
 """
@@ -272,15 +266,12 @@ function maximum_series(
         return res, Arb(NaN, prec = precision(a))
     end
 
-    restterm = let y = zero(x)
-        Arblib.set!(Arblib.radref(y), Arblib.radref(x))
-        y^(degree + 1) * Arblib.ref(p, degree + 1)
-    end
+    remainder = taylor_remainder(p, x)
 
-    # If the restterm is finite the result will never be finite,
+    # If the remainder is finite the result will never be finite,
     # return the zeroth order enclosure
-    if !isfinite(restterm)
-        verbose && @info "non-finite restterm"
+    if !isfinite(remainder)
+        verbose && @info "non-finite remainder"
         res = maybe_abs(p[0])
         return res, copy(res)
     end
@@ -311,5 +302,5 @@ function maximum_series(
         Arblib.max!(res, res, maybe_abs(q(union(d, lbound(Arb, d)))))
     end
 
-    return res + restterm, maybe_abs(q[0])
+    return res + remainder, maybe_abs(q[0])
 end
