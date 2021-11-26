@@ -81,7 +81,6 @@ function refine_root(
         if f isa ArbPoly
             dy = df(root)
         else
-            series
             dy = f(series)[1]
         end
         new_root = mid - y / dy
