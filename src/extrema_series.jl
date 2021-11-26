@@ -1,4 +1,50 @@
 """
+    _compute_endpoints(a::Arf, b::Arf, x::Arb)
+
+Given `a`, `b` and `x` with `x = Arb((a, b))` compute
+```
+c = a - midpoint(x)
+d = b - midpoint(x)
+```
+rounded towards zero. It returns `c, c_exact, d, d_exact` where `c`
+and `d` are as above and `c_exact` is true if `c` was computed exactly
+and false if rounding was performed, similarly for `d_exact`.
+
+This is used in [`extrema_series`](@ref), [`minimum_series`](@ref) and
+[`maximum_series`](@ref) to compute the interval on which the extrema
+of the polynomial should be enclosed.
+
+If `c_exact` is false then an enclosure of the endpoint can be
+computed with [`_enclose_inexact_endpoint`](@ref).
+"""
+function _compute_endpoints(a::Arf, b::Arf, x::Arb)
+    c, d = zero(a), zero(b)
+    xmid = Arblib.midref(x)
+    c_exact = iszero(Arblib.sub!(c, a, xmid, rnd = Arblib.ArbRoundToZero))
+    d_exact = iszero(Arblib.sub!(d, b, xmid, rnd = Arblib.ArbRoundToZero))
+    return c, c_exact, d, d_exact
+end
+
+"""
+    _enclose_inexact_endpoint(endpoint::Arf)
+
+Compute a ball centered at `endpoint` with a radius of 1 ulp of
+`endpoint`.
+
+This is used to get an enclosure of the endpoint in case
+[`_compute_endpoints`](@ref) gives an inexact result. The semantics of
+Arb guarantees that the error of the endpoint is at most 1 ulp when
+using directed rounding and a ball with `endpoint` as midpoint and a
+radius set to the value of this 1 ulp will therefore always enclose
+the exact result.
+"""
+function _enclose_inexact_endpoint(endpoint::Arf)
+    res = Arb(endpoint)
+    Arblib.set_ulp!(Arblib.radref(res), endpoint, prec = precision(endpoint))
+    return res
+end
+
+"""
     extrema_series(f, a::Arf, b::Arf; degree, abs_value, verbose)
 
 Compute both the minimum and maximum of the function `f` on the
@@ -90,29 +136,21 @@ function extrema_series(
     # Compute the Taylor series at the midpoint of x
     q = f(ArbSeries((Arblib.midref(x), 1); degree))
 
-    # We want to enclose the extrema between c and d. However due to
-    # rounding the values of c and d might not be known exactly. We
-    # pass the smaller interval to extrema_polynomial, i.e. the one
-    # given by taking the upper bound of c and the lower bound of d.
-    # If c or d are not exact we also have to include the missing
-    # parts of the endpoints.
-    # TODO: In some extremely rare cases we might have ubound(c) >
-    # lbound(d), in this case an exception will be thrown.
-    c = a - midpoint(Arb, x)
-    d = b - midpoint(Arb, x)
+    # Compute interval to enclose extrema of Taylor series on
+    c, c_exact, d, d_exact = _compute_endpoints(a, b, x)
 
     # Enclose the extrema of the Taylor series
-    res = extrema_polynomial(ArbPoly(q), ubound(c), lbound(d); abs_value)
+    res = extrema_polynomial(ArbPoly(q), c, d; abs_value)
 
-    if !iszero(Arblib.radref(c))
-        # Enclose extrema on [c, ubound(c)]
-        y = maybe_abs(q(union(c, ubound(Arb, c))))
+    if !c_exact
+        # Compute value on an enclosure of the left endpoint
+        y = maybe_abs(q(_enclose_inexact_endpoint(c)))
         Arblib.min!(res[1], res[1], y)
         Arblib.max!(res[2], res[2], y)
     end
-    if !iszero(Arblib.radref(d))
-        # Enclose extrema on [lbound(d), d]
-        y = maybe_abs(q(union(d, lbound(Arb, d))))
+    if !d_exact
+        # Compute value on an enclosure of the right endpoint
+        y = maybe_abs(q(_enclose_inexact_endpoint(d)))
         Arblib.min!(res[1], res[1], y)
         Arblib.max!(res[2], res[2], y)
     end
@@ -190,27 +228,19 @@ function minimum_series(
     # Compute the Taylor series at the midpoint of x
     q = f(ArbSeries((Arblib.midref(x), 1); degree))
 
-    # We want to enclose the minimum between c and d. However due to
-    # rounding the values of c and d might not be known exactly. We
-    # pass the smaller interval to minimum_polynomial, i.e. the one
-    # given by taking the upper bound of c and the lower bound of d.
-    # If c or d are not exact we also have to include the missing
-    # parts of the endpoints.
-    # FIXME: In some extremely rare cases we might have ubound(c) >
-    # lbound(d), in this case an exception will be thrown.
-    c = a - midpoint(Arb, x)
-    d = b - midpoint(Arb, x)
+    # Compute interval to enclose minimum of Taylor series on
+    c, c_exact, d, d_exact = _compute_endpoints(a, b, x)
 
     # Enclose the minimum of the Taylor series
-    res = minimum_polynomial(ArbPoly(q), ubound(c), lbound(d); abs_value)
+    res = minimum_polynomial(ArbPoly(q), c, d; abs_value)
 
-    if !iszero(Arblib.radref(c))
-        # Enclose maximum on [c, ubound(c)]
-        Arblib.min!(res, res, maybe_abs(q(union(c, ubound(Arb, c)))))
+    if !c_exact
+        # Compute value on an enclosure of the left endpoint
+        Arblib.min!(res, res, maybe_abs(q(_enclose_inexact_endpoint(c))))
     end
-    if !iszero(Arblib.radref(d))
-        # Enclose maximum on [lbound(d), d]
-        Arblib.min!(res, res, maybe_abs(q(union(d, lbound(Arb, d)))))
+    if !d_exact
+        # Compute value on an enclosure of the right endpoint
+        Arblib.min!(res, res, maybe_abs(q(_enclose_inexact_endpoint(d))))
     end
 
     return res + remainder, maybe_abs(q[0])
@@ -279,27 +309,19 @@ function maximum_series(
     # Compute the Taylor series at the midpoint of x
     q = f(ArbSeries((Arblib.midref(x), 1); degree))
 
-    # We want to enclose the maximum between c and d. However due to
-    # rounding the values of c and d might not be known exactly. We
-    # pass the smaller interval to maximum_polynomial, i.e. the one
-    # given by taking the upper bound of c and the lower bound of d.
-    # If c or d are not exact we also have to include the missing
-    # parts of the endpoints.
-    # FIXME: In some extremely rare cases we might have ubound(c) >
-    # lbound(d), in this case an exception will be thrown.
-    c = a - midpoint(Arb, x)
-    d = b - midpoint(Arb, x)
+    # Compute interval to enclose maximum of Taylor series on
+    c, c_exact, d, d_exact = _compute_endpoints(a, b, x)
 
     # Enclose the maximum of the Taylor series
-    res = maximum_polynomial(ArbPoly(q), ubound(c), lbound(d); abs_value)
+    res = maximum_polynomial(ArbPoly(q), c, d; abs_value)
 
-    if !iszero(Arblib.radref(c))
-        # Enclose maximum on [c, ubound(c)]
-        Arblib.max!(res, res, maybe_abs(q(union(c, ubound(Arb, c)))))
+    if !c_exact
+        # Compute value on an enclosure of the left endpoint
+        Arblib.max!(res, res, maybe_abs(q(_enclose_inexact_endpoint(c))))
     end
-    if !iszero(Arblib.radref(d))
-        # Enclose maximum on [lbound(d), d]
-        Arblib.max!(res, res, maybe_abs(q(union(d, lbound(Arb, d)))))
+    if !d_exact
+        # Compute value on an enclosure of the right endpoint
+        Arblib.max!(res, res, maybe_abs(q(_enclose_inexact_endpoint(d))))
     end
 
     return res + remainder, maybe_abs(q[0])
