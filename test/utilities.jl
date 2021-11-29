@@ -111,3 +111,24 @@ end
     @test ArbExtras.format_interval(Arf(1.23456789), Arf(1.234567891), digits = 10) ==
           "[1.23456789, 1.234567891]"
 end
+
+@testset "taylor_remainder" begin
+    @test let x = Arb((-1, 1))
+        Arblib.overlaps(
+            ArbExtras.taylor_remainder(cos(ArbSeries((x, 1), degree = 4)), x),
+            Arb(1 // factorial(4)),
+        )
+    end
+
+    for f in (cos, exp, atan)
+        for x in (Arb((1, 2)), Arb(NaN), Arb(5), Arb((-10, 10)))
+            for degree = 1:10
+                p = f(ArbSeries((x, 1); degree))
+                @test isequal(
+                    ArbExtras.taylor_remainder(p, x),
+                    p[degree] * (x - midpoint(x))^degree,
+                )
+            end
+        end
+    end
+end

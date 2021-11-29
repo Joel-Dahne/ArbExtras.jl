@@ -62,7 +62,7 @@ function demo_problem(i::Integer, thin = false)
     end
 
 
-    df(x::Arb) = f(ArbSeries([x, 1], degree = 1))[1]
+    df(x::Arb) = f(ArbSeries((x, 1), degree = 1))[1]
     df(x::ArbSeries) =
         Arblib.derivative(f(ArbSeries(x.arb_poly, degree = Arblib.degree(x) + 1)))
 

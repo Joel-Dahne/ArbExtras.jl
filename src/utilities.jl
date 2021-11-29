@@ -184,3 +184,31 @@ function format_interval(a::Arf, b::Arf; digits = 5)
            Base.MPFR._string(convert(BigFloat, b), digits) *
            "]"
 end
+
+"""
+    taylor_remainder(p::ArbSeries, x::Arb)
+
+Compute `p[degree] * (x - midpoint(x))^degree`, where `degree` is the
+degree of `p`
+
+This corresponds to the Lagrange form of the remainder term in a
+Taylor expansion around the point `midpoint(x)` of degree `degree -
+1` valid on the full interval `x`.
+
+For example, for a function `f`, a ball `x`, any `degree >= 0` and
+```
+p = f(ArbSeries((x, 1), degree = degree + 1))
+q = f(ArbSeries((midpoint(x), 1), degree = degree))
+```
+we have for any `y ∈ x` that
+```
+f(y) ∈ q(y) + taylor_remainder(p, x)
+```
+"""
+function taylor_remainder(p::ArbSeries, x::Arb)
+    restterm = zero(x)
+    Arblib.set!(Arblib.radref(restterm), Arblib.radref(x))
+    Arblib.pow!(restterm, restterm, unsigned(Arblib.degree(p)))
+    Arblib.mul!(restterm, restterm, Arblib.ref(p, Arblib.degree(p)))
+    return restterm
+end
