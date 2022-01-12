@@ -148,6 +148,10 @@ function extrema_enclosure(
 
     iterations = 0
     evals = 0
+
+    verbose && @info "iteration: $(lpad(iterations, 2)), " *
+          " starting intervals: $(lpad(length(intervals), 3)), "
+
     while true
         iterations += 1
         evals += length(intervals)
@@ -326,6 +330,10 @@ function minimum_enclosure(
 
     iterations = 0
     evals = 0
+
+    verbose && @info "iteration: $(lpad(iterations, 2)), " *
+          " starting intervals: $(lpad(length(intervals), 3)), "
+
     while true
         iterations += 1
         evals += length(intervals)
@@ -470,6 +478,10 @@ function maximum_enclosure(
 
     iterations = 0
     evals = 0
+
+    verbose && @info "iteration: $(lpad(iterations, 2)), " *
+          " starting intervals: $(lpad(length(intervals), 3)), "
+
     while true
         iterations += 1
         evals += length(intervals)
