@@ -78,6 +78,10 @@ function bounded_by(
 
     iterations = 0
     evals = 0
+
+    verbose && @info "iteration: $(lpad(iterations, 2)), " *
+          " starting intervals: $(lpad(length(intervals), 3)), "
+
     while true
         iterations += 1
         evals += length(intervals)
@@ -106,6 +110,10 @@ function bounded_by(
             end
         end
 
+        # Compute current bounds of maximum for verbose output
+        max_low = Arf(-Inf)
+        max_upp = Arf(-Inf)
+
         # Check for each interval if the bound is satisfied
         next_intervals = sizehint!(empty(intervals), 2length(intervals))
         for i in eachindex(intervals)
@@ -118,12 +126,22 @@ function bounded_by(
                     next_intervals,
                     bisect_interval(intervals[i]..., log_midpoint = log_bisection)...,
                 )
+                if verbose
+                    low, upp = getinterval(values[i])
+                    Arblib.max!(max_low, max_low, low)
+                    Arblib.max!(max_upp, max_upp, upp)
+                end
             end
         end
         intervals = next_intervals
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
-              "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), "
+              "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
+              ifelse(
+                  isempty(intervals),
+                  "",
+                  "maximum on remaining: $(format_interval(max_low, max_upp))",
+              )
 
         non_finite = count(!isfinite, values)
         verbose && non_finite > 0 && @info "non-finite intervals: $non_finite"
