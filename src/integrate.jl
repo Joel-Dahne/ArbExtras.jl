@@ -130,7 +130,7 @@ function integrate(
     integral = zero(a)
 
     verbose && @info "iteration: $(lpad(0, 2)), " *
-          "starting intervals: $(lpad(length(intervals), 4))"
+          " starting intervals: $(lpad(length(intervals), 3))"
 
     iterations = 0
     evals = 0
