@@ -109,4 +109,14 @@
         @test all(isnan, ArbExtras.minimum_series(x -> inv(x - sin(x)), Arf(0.1), Arf(1)))
         @test all(isnan, ArbExtras.maximum_series(x -> inv(x - sin(x)), Arf(0.1), Arf(1)))
     end
+
+    @testset "enclosure_series" begin
+        demo_problems = demo_problem.(eachindex(demo_problems_definitions), true)
+        for (f, (a, b), min) in demo_problems
+            res1 = Arb(ArbExtras.extrema_series(f, a, b, degree = 0)[1:2])
+            res2 = Arb((ArbExtras.enclosure_series(f, Arb((a, b)))))
+
+            @test Arblib.overlaps(res1, res2)
+        end
+    end
 end
