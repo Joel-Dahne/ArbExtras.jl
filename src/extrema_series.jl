@@ -326,3 +326,25 @@ function maximum_series(
 
     return res + remainder, maybe_abs(q[0])
 end
+
+"""
+    enclosure_series(f, x::Arb; degree = 0, abs_value = false, verbose = false)
+
+Convenience function for computing an enclosure of `f(x)` using
+[`extrema_series`](@ref).
+
+The enclosure is computed by finding the minimum and maximum value
+using [`extrema_series`](@ref) and typically gives a tighter
+enclosures than just evaluating `f(x)` directly.
+
+It is equivalent to
+```
+Arb(ArbExtras.extrema_series(f, getinterval(x)...; degree, abs_value, verbose)[1:2])
+```
+but has the default value `degree = 0`, which is different than
+[`extrema_series`](@ref). The reason for the default `degree = 0` is
+that it can pick up on monotonicity of `f` and is therefore enough in
+many cases.
+"""
+enclosure_series(f, x::Arb; degree::Integer = 0, abs_value = false, verbose = false) =
+    Arb(extrema_series(f, getinterval(x)...; degree, abs_value, verbose)[1:2])
