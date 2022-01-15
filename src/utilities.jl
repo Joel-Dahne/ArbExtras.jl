@@ -116,20 +116,25 @@ contains zero this is only satisfied if `x` is exactly zero.
 Both `atol` and `rtol` can be given as `nothing`, in which case that
 check is skipped. If both of them are `nothing` then it returns `true`
 if `x` is finite.
+
+It always returns true if `x` is finite and the radius is zero.
 """
 function check_tolerance(x::Arb; atol = nothing, rtol = nothing)
     isfinite(x) || return false
     isnothing(atol) && isnothing(rtol) && return true
 
+    iszero(Arblib.radref(x)) && return true
+
+    # Radius is always non-zero from here
+
     error = radius(Arb, x)
     Arblib.mul_2exp!(error, error, 1)
 
-    !isnothing(atol) && error <= atol && return true
+    !isnothing(atol) && !iszero(atol) && error <= atol && return true
 
-    if !isnothing(rtol)
-        Arblib.contains_zero(x) && return iszero(error)
-
-        return error <= rtol * abs(x)
+    if !isnothing(rtol) && !iszero(rtol) && !Arblib.contains_zero(x)
+        bound = rtol * x
+        return error <= Arblib.abs!(bound, bound)
     else
         return false
     end
