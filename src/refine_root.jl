@@ -133,3 +133,117 @@ function refine_root(
         return root
     end
 end
+
+"""
+    refine_root_bisection(f, root::Arb; atol, rtol, max_iterations, strict, verbose)
+
+Refine the root of the function `f` on the interval `[a, b]` using
+bisection.
+
+The function `f` is assumed to be continuous on the interval `[a, b]`
+and `f(a)` and `f(b)` should have different signs.
+
+It iteratively bisects the interval and determines which subinterval
+to keep by checking the sign of `f` at the midpoint. It stops either
+when the required tolerance is met according to
+[`check_tolerance`](@ref), it has reached the maximum number of
+iterations, it can't determine the sign of the midpoint or the
+midpoint is equal to one of the endpoints (meaning that we have
+bisected as much as possible at the given precision).
+
+If the zero lies exactly at or very close to one of the bisection
+point it can fail to determine the sign there. We avoid this by in
+that case instead trying to bisect at a point between the left
+endpoint of the interval and the midpoint, if that also fails it
+stops.
+
+When possible [`refine_root`](@ref) should be used instead since it
+converges much faster. This method is useful when the derivative is
+not available, i.e. evaluation with `ArbSeries` is not possible, or as
+a preprocessor for [`refine_root`](@ref) if the original enclosure of
+the root gives an enclosure on the derivative which contains zero.
+
+If `strict = true` return `NaN` if the signs of `f(a)` and `f(b)`
+don't differ. In this case a finite result proves that there is a root
+of `f` on the interval, assuming that `f` is continuous there, but it
+says nothing about the uniqueness.
+
+If `verbose = true` then print the enclosure at each iteration and
+some more information in the end.
+
+- **IMPROVE:** Reduce the number of allocations.
+- **IMPROVE:** Handle the case when the sign at the midpoint can't be
+  determined better by using a perturbation of the midpoint.
+"""
+function refine_root_bisection(
+    f,
+    a::Arf,
+    b::Arf;
+    atol = 0,
+    rtol = sqrt(eps(one(a))),
+    max_iterations = precision(a) ÷ 2,
+    strict = true,
+    verbose = false,
+)
+    check_interval(a, b)
+
+    sign_a, sign_b = Arblib.sgn_nonzero(f(Arb(a))), Arblib.sgn_nonzero(f(Arb(b)))
+
+    if sign_a * sign_b > 0
+        verbose && @warn "sign of endpoints don't differ"
+        return strict ? (Arf(NaN), Arf(NaN)) : (a, b)
+    end
+
+    if sign_a == 0 || sign_b == 0
+        verbose && sign_a == 0 && @warn "could not determine sign at left endpoint"
+        verbose && sign_b == 0 && @warn "could not determine sign at right endpoint"
+        return strict ? (Arf(NaN), Arf(NaN)) : (a, b)
+    end
+
+    root = Arb((a, b)) # Compute root to be able to check tolerance
+
+    for iteration = 1:max_iterations
+        if check_tolerance(root; atol, rtol)
+            verbose && @info "tolerance satisfied"
+            break
+        end
+
+        mid = Arblib.mul_2exp!(zero(Arf), a + b, -1)
+
+        if a == mid || b == mid
+            verbose && @info "midpoint equal to endpoint, maximum precision reached"
+            break
+        end
+
+        sign_mid = Arblib.sgn_nonzero(f(Arb(mid)))
+
+        if sign_mid == 0
+            verbose && @info "could not determine sign at midpoint - shifting midpoint"
+
+            # Try with a different midpoint
+            mid = Arblib.mul_2exp!(zero(Arf), a + mid, -1)
+            sign_mid = Arblib.sgn_nonzero(f(Arb(mid)))
+
+            # If this also fails we stop
+            if sign_mid == 0
+                verbose && @info "could not determine sign at new midpoint"
+                break
+            end
+        end
+
+        # We always have sign_mid != 0 here
+
+        if sign_mid == sign_a
+            a = mid
+            sign_a = sign_mid
+        else
+            b = mid
+            sign_b = sign_mid
+        end
+
+        root = Arb((a, b))
+        verbose && @info "iteration $iteration: $root"
+    end
+
+    return (a, b)
+end
