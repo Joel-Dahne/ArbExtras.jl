@@ -126,11 +126,28 @@ function bisect_interval_recursive(
 ) where {T<:Union{Arf,Arb}}
     depth >= 0 || Throw(ArgumentError("depth needs to be non-negative, got $depth"))
 
+    if T == Arf && log_midpoint
+        buffer = Arb()
+    end
+
     res = Vector{NTuple{2,T}}(undef, 2^depth)
     res[1] = (a, b)
+
     @inbounds for i = 1:depth
         for j in reverse(1:2^(i-1))
-            res[2j-1], res[2j] = bisect_interval(res[j]...; log_midpoint)
+            a, b = res[j]
+
+            if log_midpoint
+                if T == Arf
+                    mid = _midpoint_interval_log!(buffer, a, b)
+                else
+                    mid = _midpoint_interval_log(a, b)
+                end
+            else
+                mid = _midpoint_interval(a, b)
+            end
+
+            res[2j-1], res[2j] = (a, mid), (mid, b)
         end
     end
 
