@@ -180,7 +180,7 @@ function bisect_intervals(
     end
 
     index = 1
-    for i in eachindex(to_bisect)
+    @inbounds for i in eachindex(to_bisect)
         if to_bisect[i]
             a, b = intervals[i]
 
