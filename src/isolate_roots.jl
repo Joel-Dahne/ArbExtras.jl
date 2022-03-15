@@ -144,25 +144,24 @@ function isolate_roots(
     while !isempty(intervals) && iterations < depth
         iterations += 1
 
-        next_intervals = empty(intervals)
-
-        for interval in intervals
+        to_split = falses(length(intervals))
+        for (i, interval) in enumerate(intervals)
             maybe, unique = check_interval(f, interval...; check_unique)
 
             if unique
                 push!(found, interval)
                 push!(flags, true)
             elseif maybe
-                if iterations < depth
-                    push!(next_intervals, bisect_interval(interval...)...)
-                else
-                    # If we are on the last iteration don't split the interval
-                    push!(next_intervals, interval)
-                end
+                to_split[i] = true
             end
         end
 
-        intervals = next_intervals
+        if iterations < depth
+            intervals = bisect_intervals(intervals, to_split)
+        else
+            # If we are on the last iteration don't split the intervals
+            intervals = intervals[to_split]
+        end
 
         verbose &&
             iterations < depth &&
