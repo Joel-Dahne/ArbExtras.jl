@@ -115,17 +115,14 @@ function bounded_by(
         max_upp = Arf(-Inf)
 
         # Check for each interval if the bound is satisfied
-        next_intervals = sizehint!(empty(intervals), 2length(intervals))
+        to_split = falses(length(intervals))
         for i in eachindex(intervals)
             if values[i] > C
                 verbose && @info "bound doesn't hold on the interval x = $(intervals[i])"
                 verbose && @info "got the maximum of f(x) to be $(values[i])"
                 return false
             elseif !(values[i] <= C)
-                push!(
-                    next_intervals,
-                    bisect_interval(intervals[i]..., log_midpoint = log_bisection)...,
-                )
+                to_split[i] = true
                 if verbose
                     low, upp = getinterval(values[i])
                     Arblib.max!(max_low, max_low, low)
@@ -133,7 +130,7 @@ function bounded_by(
                 end
             end
         end
-        intervals = next_intervals
+        intervals = bisect_intervals(intervals, to_split, log_midpoint = log_bisection)
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
