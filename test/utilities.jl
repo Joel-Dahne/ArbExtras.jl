@@ -1,53 +1,67 @@
-@testset "bisect_interval" begin
-    a, b = Arf(0), Arf(2)
-    @test isequal(ArbExtras.bisect_interval(a, b), ((a, Arf(1)), (Arf(1), b)))
-    a, b = Arf(0), Arf(Inf)
-    @test isequal(ArbExtras.bisect_interval(a, b), ((a, Arf(Inf)), (Arf(Inf), b)))
-    a, b, = Arf(0, prec = 80), Arf(2, prec = 90)
-    @test precision(ArbExtras.bisect_interval(a, b)[1][2]) == 90
+@testset "bisect_interval: $T" for T in (Arf, Arb)
+    @test ArbExtras.bisect_interval(T(0), T(2)) == ((0, 1), (1, 2))
+    @test ArbExtras.bisect_interval(T(0), T(Inf)) == ((0, Inf), (Inf, Inf))
+    @test precision(ArbExtras.bisect_interval(T(0, prec = 80), T(2, prec = 90))[1][2]) == 90
 
-    a, b = Arf(1), Arf(2)
-    @test ArbExtras.bisect_interval(a, b, log_midpoint = true)[1][2] ≈ exp(log(2) / 2)
-    a, b = Arf(-2), Arf(-1)
-    @test ArbExtras.bisect_interval(a, b, log_midpoint = true)[1][2] ≈ -exp(log(2) / 2)
-    a, b = Arf(0), Arf(2)
-    @test isequal(
-        ArbExtras.bisect_interval(a, b, log_midpoint = true),
-        ((a, Arf(1)), (Arf(1), b)),
-    )
-    a, b = Arf(-2), Arf(0)
-    @test isequal(
-        ArbExtras.bisect_interval(a, b, log_midpoint = true),
-        ((a, Arf(-1)), (Arf(-1), b)),
-    )
-    a, b = Arf(-2), Arf(2)
-    @test isequal(
-        ArbExtras.bisect_interval(a, b, log_midpoint = true),
-        ((a, Arf(0)), (Arf(0), b)),
-    )
+    @test ArbExtras.bisect_interval(T(1), T(4), log_midpoint = true) == ((1, 2), (2, 4))
+    @test ArbExtras.bisect_interval(T(-4), T(-1), log_midpoint = true) ==
+          ((-4, -2), (-2, -1))
+    @test ArbExtras.bisect_interval(T(0), T(2), log_midpoint = true) == ((0, 1), (1, 2))
+    @test ArbExtras.bisect_interval(T(-2), T(0), log_midpoint = true) == ((-2, -1), (-1, 0))
 
-    a, b = Arb(0), Arb(2)
-    @test isequal(ArbExtras.bisect_interval(a, b), ((a, Arb(1)), (Arb(1), b)))
-    a, b = Arb(0), Arb(Inf)
-    @test isequal(ArbExtras.bisect_interval(a, b), ((a, Arb(Inf)), (Arb(Inf), b)))
-    a, b, = Arb(0, prec = 80), Arb(2, prec = 90)
-    @test precision(ArbExtras.bisect_interval(a, b)[1][2]) == 90
+    @test ArbExtras.bisect_interval(T(-2), T(2), log_midpoint = true) == ((-2, 0), (0, 2))
 end
 
-@testset "bisect_interval_recursive" begin
-    a, b = Arf(0), Arf(8)
+@testset "bisect_interval_recursive: $T" for T in (Arf, Arb)
+    a, b = T(0), T(8)
     @test ArbExtras.bisect_interval_recursive(a, b, 0) == [(0, 8)]
     @test ArbExtras.bisect_interval_recursive(a, b, 1) == [(0, 4), (4, 8)]
     @test ArbExtras.bisect_interval_recursive(a, b, 2) == [(0, 2), (2, 4), (4, 6), (6, 8)]
     @test ArbExtras.bisect_interval_recursive(a, b, 3) ==
           [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8)]
 
-    a, b = Arb(0), Arb(8)
-    @test ArbExtras.bisect_interval_recursive(a, b, 0) == [(0, 8)]
-    @test ArbExtras.bisect_interval_recursive(a, b, 1) == [(0, 4), (4, 8)]
-    @test ArbExtras.bisect_interval_recursive(a, b, 2) == [(0, 2), (2, 4), (4, 6), (6, 8)]
-    @test ArbExtras.bisect_interval_recursive(a, b, 3) ==
-          [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8)]
+    @test ArbExtras.bisect_interval_recursive(a, b, 0, log_midpoint = true) == [(0, 8)]
+    @test ArbExtras.bisect_interval_recursive(a, b, 1, log_midpoint = true) ==
+          [(0, 4), (4, 8)]
+    @test all(
+        map(
+            ((x1, y1), (x2, y2)) -> x1 ≈ x2 && y1 ≈ y2,
+            ArbExtras.bisect_interval_recursive(a, b, 2, log_midpoint = true),
+            [(0, 2), (2, 4), (4, sqrt(32)), (sqrt(32), 8)],
+        ),
+    )
+end
+
+@testset "bisect_intervals: $T" for T in (Arf, Arb)
+    intervals = [(T(0), T(2))]
+    @test ArbExtras.bisect_intervals(intervals, [true]) ==
+          ArbExtras.bisect_intervals(intervals, BitVector((true,))) ==
+          [(0, 1), (1, 2)]
+    @test ArbExtras.bisect_intervals(intervals, [false]) ==
+          ArbExtras.bisect_intervals(intervals, BitVector((false,))) ==
+          []
+
+    intervals = [(T(0), T(2)), (T(4), T(6))]
+    @test ArbExtras.bisect_intervals(intervals, [true, true]) ==
+          ArbExtras.bisect_intervals(intervals, BitVector((true, true))) ==
+          [(0, 1), (1, 2), (4, 5), (5, 6)]
+    @test ArbExtras.bisect_intervals(intervals, [true, false]) ==
+          ArbExtras.bisect_intervals(intervals, BitVector((true, false))) ==
+          [(0, 1), (1, 2)]
+    @test ArbExtras.bisect_intervals(intervals, [false, true]) ==
+          ArbExtras.bisect_intervals(intervals, BitVector((false, true))) ==
+          [(4, 5), (5, 6)]
+    @test ArbExtras.bisect_intervals(intervals, [false, false]) ==
+          ArbExtras.bisect_intervals(intervals, BitVector((false, false))) ==
+          []
+
+    intervals = [(T(1), T(4))]
+    @test ArbExtras.bisect_intervals(intervals, [true], log_midpoint = true) ==
+          ArbExtras.bisect_intervals(intervals, BitVector((true,)), log_midpoint = true) ==
+          [(1, 2), (2, 4)]
+    @test ArbExtras.bisect_intervals(intervals, [false], log_midpoint = true) ==
+          ArbExtras.bisect_intervals(intervals, BitVector((false,)), log_midpoint = true) ==
+          []
 end
 
 @testset "check_tolerance" begin
