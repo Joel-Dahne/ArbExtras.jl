@@ -1,14 +1,88 @@
 """
+    _midpoint_interval(a::T, b::T) where {T<:Union{Arf,Arb}}
+
+Return the midpoint of `a` and `b`.
+"""
+function _midpoint_interval(a::T, b::T) where {T<:Union{Arf,Arb}}
+    mid = a + b
+    Arblib.mul_2exp!(mid, mid, -1)
+
+    return mid
+end
+
+"""
+    _midpoint_interval_log!(buffer::Arb, a::Arf, b::Arf)
+
+Return the logarithmic midpoint of `a` and `b` as described in
+[`bisect_interval`](@ref).
+
+The argument `buffer` is used as scratch space during the
+computations.
+"""
+function _midpoint_interval_log!(buffer::Arb, a::Arf, b::Arf)
+    cmpa = Arblib.cmp(a, 0)
+    cmpb = Arblib.cmp(b, 0)
+
+    if cmpa > 0 && cmpb > 0
+        Arblib.set!(buffer, a)
+        Arblib.mul!(buffer, buffer, b)
+
+        Arblib.sqrt!(buffer, buffer)
+        return midpoint(buffer)
+    elseif cmpa < 0 && cmpb < 0
+        Arblib.set!(buffer, a)
+        Arblib.mul!(buffer, buffer, b)
+
+        Arblib.sqrt!(buffer, buffer)
+        Arblib.neg!(buffer, buffer)
+        return midpoint(buffer)
+    else
+        mid = a + b
+        Arblib.mul_2exp!(mid, mid, -1)
+
+        return mid
+    end
+end
+
+"""
+    _midpoint_interval_log(a::Arf, b::Arf)
+
+Return the logarithmic midpoint of `a` and `b` as described in
+[`bisect_interval`](@ref).
+"""
+function _midpoint_interval_log(a::Arb, b::Arb)
+    if Arblib.ispositive(a) && Arblib.ispositive(b)
+        mid = a * b
+        Arblib.sqrt!(mid, mid)
+
+        return mid
+    elseif Arblib.isnegative(a) && Arblib.isnegative(b)
+        mid = a * b
+        Arblib.sqrt!(mid, mid)
+        Arblib.neg!(mid, mid)
+
+        return mid
+    else
+        mid = a + b
+        Arblib.mul_2exp!(mid, mid, -1)
+
+        return mid
+    end
+end
+
+"""
     bisect_interval(a::Arf, b::Arf; log_midpoint::Bool = false)
 
-Returns two tuples, `(a, midpoint)` and `(midpoint, b)`, which
-corresponds to splitting the interval in half.
+Compute the midpoint of `a and `b` and return two tuples, `(a,
+midpoint)` and `(midpoint, b)`, which corresponds to splitting the
+interval in half.
 
 If `log_midpoint = true` then the midpoint is computed in logarithmic
 scale. If `a, b > 0` this sets the midpoint to `exp((log(a) + log(b))
-/ 2)`. If `a, b < 0` the midpoint is `-exp((log(-a) + log(-b)) / 2)`.
-If zero is contained in the interval then currently a normal bisection
-is performed (i.e. the midpoint is `(a + b) / 2`).
+/ 2)`, can also be written as `sqrt(a * b)`. If `a, b < 0` we instead
+get `-sqrt(a * b)`. If zero is contained in the interval then
+currently a normal bisection is performed (i.e. the midpoint is `(a +
+b) / 2`).
 
 Logarithmic bisection can be useful if the function in consideration
 has a logarithmic behaviour and the interval has numbers exponentially
@@ -21,53 +95,16 @@ interval contains zero.
 The value of `midpoint` is aliased in the two tuples and care should
 therefore be taken if doing inplace operations on it.
 """
-function bisect_interval(a::Arf, b::Arf; log_midpoint::Bool = false)
-    if log_midpoint && a > 0
-        c = Arb(a)
-        d = Arb(b)
-        Arblib.log!(c, c)
-        Arblib.log!(d, d)
-        Arblib.add!(c, c, d)
-        Arblib.mul_2exp!(c, c, -1)
-        Arblib.exp!(c, c)
-        mid = midpoint(c)
-    elseif log_midpoint && b < 0
-        c = Arb(a)
-        d = Arb(b)
-        Arblib.neg!(c, c)
-        Arblib.neg!(d, d)
-        Arblib.log!(c, c)
-        Arblib.log!(d, d)
-        Arblib.add!(c, c, d)
-        Arblib.mul_2exp!(c, c, -1)
-        Arblib.exp!(c, c)
-        Arblib.neg!(c, c)
-        mid = midpoint(c)
+function bisect_interval(a::T, b::T; log_midpoint::Bool = false) where {T<:Union{Arf,Arb}}
+    if log_midpoint
+        if T == Arf
+            mid = _midpoint_interval_log!(Arb(prec = Arblib._precision((a, b))), a, b)
+        else
+            mid = _midpoint_interval_log(a, b)
+        end
     else
-        mid = a + b
-        Arblib.mul_2exp!(mid, mid, -1)
+        mid = _midpoint_interval(a, b)
     end
-
-    return (a, mid), (mid, b)
-end
-
-"""
-    bisect_interval(a::Arb, b::Arb; log_midpoint::Bool = false)
-
-Returns two tuples, `(a, midpoint)` and `(midpoint, b)`, which
-corresponds to splitting the interval in half.
-
-The method currently doesn't support `log_midpoint = true`, it is
-there to make the signature the same as for the `Arf` version.
-
-The value of `midpoint` is aliased in the two tuples and care should
-therefore be taken if doing inplace operations on it.
-"""
-function bisect_interval(a::Arb, b::Arb; log_midpoint::Bool = false)
-    log_midpoint && throw(ArgumentError("log_midpoint currently not supported for Arb"))
-
-    mid = a + b
-    Arblib.mul_2exp!(mid, mid, -1)
 
     return (a, mid), (mid, b)
 end
@@ -89,11 +126,77 @@ function bisect_interval_recursive(
 ) where {T<:Union{Arf,Arb}}
     depth >= 0 || Throw(ArgumentError("depth needs to be non-negative, got $depth"))
 
+    if T == Arf && log_midpoint
+        buffer = Arb()
+    end
+
     res = Vector{NTuple{2,T}}(undef, 2^depth)
     res[1] = (a, b)
+
     @inbounds for i = 1:depth
         for j in reverse(1:2^(i-1))
-            res[2j-1], res[2j] = bisect_interval(res[j]...; log_midpoint)
+            a, b = res[j]
+
+            if log_midpoint
+                if T == Arf
+                    mid = _midpoint_interval_log!(buffer, a, b)
+                else
+                    mid = _midpoint_interval_log(a, b)
+                end
+            else
+                mid = _midpoint_interval(a, b)
+            end
+
+            res[2j-1], res[2j] = (a, mid), (mid, b)
+        end
+    end
+
+    return res
+end
+
+"""
+    bisect_intervals(intervals::Vector{NTuple{2,T}}, to_bisect::Union{BitVector,Vector{Bool}}; log_midpoint = false) where {T<:Union{Arf,Arb}}
+
+Bisect all intervals in `intervals` for which `to_bisect` is true and
+return a vector with the bisected intervals.
+
+See also [`bisect_interval`](@ref).
+"""
+function bisect_intervals(
+    intervals::Vector{NTuple{2,T}},
+    to_bisect::Union{BitVector,Vector{Bool}};
+    log_midpoint::Bool = false,
+) where {T<:Union{Arf,Arb}}
+    length(intervals) == length(to_bisect) || throw(
+        ArgumentError("intervals and to_bisect should have the same number of elements"),
+    )
+
+    res = Vector{eltype(intervals)}(undef, 2sum(to_bisect))
+
+    isempty(res) && return res
+
+    if T == Arf && log_midpoint
+        buffer = Arb()
+    end
+
+    index = 1
+    @inbounds for i in eachindex(to_bisect)
+        if to_bisect[i]
+            a, b = intervals[i]
+
+            if log_midpoint
+                if T == Arf
+                    mid = _midpoint_interval_log!(buffer, a, b)
+                else
+                    mid = _midpoint_interval_log(a, b)
+                end
+            else
+                mid = _midpoint_interval(a, b)
+            end
+
+            res[index], res[index+1] = (a, mid), (mid, b)
+
+            index += 2
         end
     end
 

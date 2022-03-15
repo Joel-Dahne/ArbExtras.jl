@@ -221,7 +221,7 @@ function extrema_enclosure(
 
         # If we are not done split the intervals where extrema could
         # be located and which do not satisfy the tolerance
-        next_intervals = sizehint!(empty(intervals), 2length(intervals))
+        to_split = falses(length(intervals))
         for i in eachindex(intervals)
             # Check if the extrema could be located in the interval
             possible_min = values_min_low[i] <= min_current_upp || !isfinite(values_min[i])
@@ -240,14 +240,11 @@ function extrema_enclosure(
                     Arblib.max!(max_upp, max_upp, values_max_upp[i])
                 else
                     # Otherwise split the interval further
-                    push!(
-                        next_intervals,
-                        bisect_interval(intervals[i]..., log_midpoint = log_bisection)...,
-                    )
+                    to_split[i] = true
                 end
             end
         end
-        intervals = next_intervals
+        intervals = bisect_intervals(intervals, to_split, log_midpoint = log_bisection)
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
@@ -388,7 +385,7 @@ function minimum_enclosure(
 
         # If we are not done split the intervals where minimum could
         # be located and which do not satisfy the tolerance
-        next_intervals = sizehint!(empty(intervals), 2length(intervals))
+        to_split = falses(length(intervals))
         for i in eachindex(intervals)
             # Check if the minimum could be located in the interval
             if values_low[i] <= min_current_upp || !isfinite(values[i])
@@ -400,14 +397,11 @@ function minimum_enclosure(
                     Arblib.min!(min_upp, min_upp, values_upp[i])
                 else
                     # Otherwise split the interval further
-                    push!(
-                        next_intervals,
-                        bisect_interval(intervals[i]..., log_midpoint = log_bisection)...,
-                    )
+                    to_split[i] = true
                 end
             end
         end
-        intervals = next_intervals
+        intervals = bisect_intervals(intervals, to_split, log_midpoint = log_bisection)
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
@@ -536,7 +530,7 @@ function maximum_enclosure(
 
         # If we are not done split the intervals where maximum could
         # be located and which do not satisfy the tolerance
-        next_intervals = sizehint!(empty(intervals), 2length(intervals))
+        to_split = falses(length(intervals))
         for i in eachindex(intervals)
             # Check if the maximum could be located in the interval
             if max_current_low <= values_upp[i] || !isfinite(values[i])
@@ -548,14 +542,11 @@ function maximum_enclosure(
                     Arblib.max!(max_upp, max_upp, values_upp[i])
                 else
                     # Otherwise split the interval further
-                    push!(
-                        next_intervals,
-                        bisect_interval(intervals[i]..., log_midpoint = log_bisection)...,
-                    )
+                    to_split[i] = true
                 end
             end
         end
-        intervals = next_intervals
+        intervals = bisect_intervals(intervals, to_split, log_midpoint = log_bisection)
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *

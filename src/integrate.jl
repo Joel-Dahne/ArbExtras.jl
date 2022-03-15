@@ -148,9 +148,8 @@ function integrate(
         # finished = true.
         remaining_intervals = 0
 
-        next_intervals = empty(intervals)
-
-        for (a, b) in intervals
+        to_split = falses(length(intervals))
+        for (i, (a, b)) in enumerate(intervals)
             integral_part = integrate_gauss_legendre(f, a, b)
 
             if check_tolerance(integral_part; atol, rtol)
@@ -160,11 +159,10 @@ function integrate(
                 integral += integral_part
             else
                 remaining_intervals += 1
-                push!(next_intervals, bisect_interval(a, b)...)
+                to_split[i] = true
             end
         end
-
-        intervals = next_intervals
+        intervals = bisect_intervals(intervals, to_split)
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
               "remaining intervals: $(lpad(remaining_intervals, 3)), " *
