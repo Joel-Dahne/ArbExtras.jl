@@ -320,3 +320,112 @@ function taylor_remainder(p::ArbSeries, x::Arb)
     Arblib.mul!(restterm, restterm, Arblib.ref(p, Arblib.degree(p)))
     return restterm
 end
+
+"""
+    enclosure_ubound(x::Arb)
+
+Compute an enclosure of the upper endpoint of `x`.
+
+The function [`ubound`](@ref) can be used to compute an upper bound of
+`x` but it doesn't give guarantee on how much larger than the upper
+endpoint of `x` this bound is.
+
+One common use of this method is to compute enclosures of functions
+which have been proved to be monotone on `x`. Consider a function `f`
+and say we have checked that the enclosure of its derivative is
+positive on `x`. In that case `f(enclosure_ubound(x))` gives an
+enclosure of the upper bound of `f` on `x`. In contrast `f(ubound(Arb,
+x))` is not even guaranteed to give an upper bound of `f` on `x`. This
+is because `ubound(Arb, x)` can be larger than `x` and hence `f` has
+not been proved to be increasing there.
+
+As an example the following code produces an `x` which satisfy `x < π`
+but for which `ubound(x) > π`.
+```
+x = Arb(3, prec = 16)
+r = Mag(lbound(Arb(π, prec = 16) - x))
+Arblib.set!(Arblib.radref(x), r)
+
+x < Arb(π, prec = 256)
+
+xᵤ = ubound(Arb, x)
+
+Arb(π, prec = 256) < Arb(xᵤ)
+```
+"""
+function enclosure_ubound(x::Arb)
+    r = radius(Arf, x)
+    m = Arblib.midref(x)
+
+    res = zero(x)
+    midres = Arblib.midref(res)
+    # Compute lower bound of enclosure
+    exact = iszero(Arblib.add!(midres, m, r, rnd = RoundDown))
+    if exact
+        return res
+    else
+        # Compute upper bound of enclosure
+        upper = zero(m)
+        Arblib.add!(upper, m, r, rnd = RoundUp)
+        return Arblib.set_interval!(res, midres, upper)
+    end
+end
+
+"""
+    enclosure_lbound(x::Arb)
+
+Compute an enclosure of the lower endpoint of `x`.
+
+See [`enclosure_ubound`](@ref).
+"""
+function enclosure_lbound(x::Arb)
+    r = radius(Arf, x)
+    m = Arblib.midref(x)
+
+    res = zero(x)
+    midres = Arblib.midref(res)
+    # Compute lower bound of enclosure
+    exact = iszero(Arblib.sub!(midres, m, r, rnd = RoundDown))
+    if exact
+        return res
+    else
+        # Compute upper bound of enclosure
+        upper = zero(m)
+        Arblib.sub!(upper, m, r, rnd = RoundUp)
+        return Arblib.set_interval!(res, midres, upper)
+    end
+end
+
+"""
+    enclosure_lbound(x::Arb)
+
+Compute an enclosure of the lower and upper endpoints of `x`.
+
+See [`enclosure_ubound`](@ref).
+"""
+function enclosure_getinterval(x::Arb)
+    r = radius(Arf, x)
+    m = Arblib.midref(x)
+
+    res1, res2 = zero(x), zero(x)
+    midres1, midres2 = Arblib.midref(res1), Arblib.midref(res2)
+
+    # Compute lower bound of enclosure of lower bound
+    exact = iszero(Arblib.sub!(midres1, m, r, rnd = RoundDown))
+    if !exact
+        # Compute upper bound of enclosure of lower bound
+        Arblib.sub!(midres2, m, r, rnd = RoundUp)
+        Arblib.set_interval!(res1, midres1, midres2)
+    end
+
+    # Compute lower bound of enclosure of upper bound
+    exact = iszero(Arblib.add!(midres2, m, r, rnd = RoundDown))
+    if !exact
+        # Compute upper bound of enclosure of lower bound
+        upper = zero(m)
+        Arblib.add!(upper, m, r, rnd = RoundUp)
+        Arblib.set_interval!(res2, midres2, upper)
+    end
+
+    return res1, res2
+end

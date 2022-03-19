@@ -146,3 +146,36 @@ end
         end
     end
 end
+
+@testset "enclosure endpoints" begin
+    x = Arb(3, prec = 16)
+    r = Mag(lbound(Arb(π, prec = 16) - x))
+    Arblib.set!(Arblib.radref(x), r)
+
+    x = Arb(0, prec = 16)
+    r = Mag(lbound(Arb(π, prec = 16)))
+    Arblib.set!(Arblib.radref(x), r)
+
+    @test -Arb(π, prec = 256) < x < Arb(π, prec = 256)
+
+    @test Arb(π, prec = 256) < ubound(Arb, x)
+    @test lbound(Arb, x) < -Arb(π, prec = 256)
+
+    @test Arblib.overlaps(ArbExtras.enclosure_ubound(x), Arb(π, prec = 256))
+    @test Arblib.overlaps(ArbExtras.enclosure_lbound(x), -Arb(π, prec = 256))
+
+    @test isequal(
+        (ArbExtras.enclosure_lbound(x), ArbExtras.enclosure_ubound(x)),
+        ArbExtras.enclosure_getinterval(x),
+    )
+
+    for x in Arb.([1, 1 // 3, ℯ, π, (0, 1)])
+        @test Arblib.overlaps(ubound(Arb, x), ArbExtras.enclosure_ubound(x))
+        @test Arblib.overlaps(lbound(Arb, x), ArbExtras.enclosure_lbound(x))
+
+        @test isequal(
+            (ArbExtras.enclosure_lbound(x), ArbExtras.enclosure_ubound(x)),
+            ArbExtras.enclosure_getinterval(x),
+        )
+    end
+end
