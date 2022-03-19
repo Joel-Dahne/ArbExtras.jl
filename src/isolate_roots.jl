@@ -48,8 +48,8 @@ function check_interval(p::ArbPoly, a::Arf, b::Arf; check_unique::Bool = true)
 
     Arblib.contains_zero(px) || return false, false
 
-    a_sign = Arblib.sgn_nonzero(p(Arb(a)))
-    b_sign = Arblib.sgn_nonzero(p(Arb(b)))
+    a_sign = Arblib.sgn_nonzero(p(a))
+    b_sign = Arblib.sgn_nonzero(p(b))
 
     if a_sign * b_sign < 0
         unique = !Arblib.contains_zero(dpx)
@@ -137,7 +137,7 @@ function isolate_roots(
 
     intervals = [(a, b)]
 
-    found = Vector{NTuple{2,Arf}}()
+    found = empty(intervals)
     flags = BitVector()
 
     iterations = 0
@@ -176,8 +176,10 @@ function isolate_roots(
               "found: $(lpad(length(found), 2)), " *
               "remaining intervals: $(length(intervals))"
 
-    append!(found, intervals)
-    append!(flags, zeros(Bool, length(intervals)))
+    if !isempty(intervals)
+        append!(found, intervals)
+        append!(flags, falses(length(intervals)))
+    end
 
     p = sortperm(found, by = interval -> interval[1])
 
