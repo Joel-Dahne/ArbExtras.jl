@@ -63,8 +63,7 @@ function demo_problem(i::Integer, thin = false)
 
 
     df(x::Arb) = f(ArbSeries((x, 1), degree = 1))[1]
-    df(x::ArbSeries) =
-        Arblib.derivative(f(ArbSeries(x.arb_poly, degree = Arblib.degree(x) + 1)))
+    df(x::ArbSeries) = Arblib.derivative(f(ArbSeries(x, degree = Arblib.degree(x) + 1)))
 
     if !iszero(Arblib.radref(xmin))
         roots, flags = ArbExtras.isolate_roots(df, Arblib.getinterval(Arf, xmin)...)
