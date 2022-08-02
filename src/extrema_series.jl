@@ -140,7 +140,7 @@ function extrema_series(
     c, c_exact, d, d_exact = _compute_endpoints(a, b, x)
 
     # Enclose the extrema of the Taylor series
-    res = extrema_polynomial(ArbPoly(q), c, d; abs_value)
+    res = extrema_polynomial(q.poly, c, d; abs_value)
 
     if !c_exact
         # Compute value on an enclosure of the left endpoint
@@ -232,7 +232,7 @@ function minimum_series(
     c, c_exact, d, d_exact = _compute_endpoints(a, b, x)
 
     # Enclose the minimum of the Taylor series
-    res = minimum_polynomial(ArbPoly(q), c, d; abs_value)
+    res = minimum_polynomial(q.poly, c, d; abs_value)
 
     if !c_exact
         # Compute value on an enclosure of the left endpoint
@@ -313,7 +313,7 @@ function maximum_series(
     c, c_exact, d, d_exact = _compute_endpoints(a, b, x)
 
     # Enclose the maximum of the Taylor series
-    res = maximum_polynomial(ArbPoly(q), c, d; abs_value)
+    res = maximum_polynomial(q.poly, c, d; abs_value)
 
     if !c_exact
         # Compute value on an enclosure of the left endpoint
