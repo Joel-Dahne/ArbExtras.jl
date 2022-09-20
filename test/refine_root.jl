@@ -6,13 +6,13 @@
         # Problems with the root away from zero so that the relative
         # tolerance is relevant
         [
-            (sin, cos, Arblib.add_error!(root, Mag(1)), root, 0, sqrt(eps(Arb))) for
+            (sin, cos, add_error(root, Mag(1)), root, 0, sqrt(eps(Arb))) for
             root in Arb(π) .* [-10:-1; 1:10]
         ]...,
         (
             x -> exp(x - 1) - 1,
             x -> exp(x - 1),
-            Arblib.add_error!(Arb(1.5), Mag(1)),
+            setball(Arb, 1.5, 1),
             Arb(1),
             0,
             sqrt(eps(Arb)),
@@ -20,7 +20,7 @@
         (
             x -> exp(x + 1) - 1,
             x -> exp(x + 1),
-            Arblib.add_error!(Arb(-1.5), Mag(1)),
+            setball(Arb, -1.5, 1),
             Arb(-1),
             0,
             sqrt(eps(Arb)),
@@ -28,21 +28,14 @@
 
         # Problems where the root is at zero so that the absolute
         # tolerance is relevant
-        (sin, cos, Arblib.add_error!(Arb(0.1), Mag(1)), Arb(0), sqrt(eps(Arb)), 0),
-        (
-            x -> exp(x) - 1,
-            exp,
-            Arblib.add_error!(Arb(0.1), Mag(1)),
-            Arb(0),
-            sqrt(eps(Arb)),
-            0,
-        ),
+        (sin, cos, setball(Arb, 0.1, 1), Arb(0), sqrt(eps(Arb)), 0),
+        (x -> exp(x) - 1, exp, setball(Arb, 0.1, 1), Arb(0), sqrt(eps(Arb)), 0),
 
         # ArbPoly
         (
             Arblib.fromroots(ArbPoly, [1, 2, 3]),
             Arblib.derivative(Arblib.fromroots(ArbPoly, [1, 2, 3])),
-            Arblib.add_error!(Arb(2.001), Mag(0.01)),
+            setball(Arb, 2.001, 0.01),
             Arb(2),
             0,
             sqrt(eps(Arb)),
@@ -50,7 +43,7 @@
         (
             Arblib.fromroots(ArbPoly, [-Arb(π), Arb(π)]),
             Arblib.derivative(Arblib.fromroots(ArbPoly, [-Arb(π), Arb(π)])),
-            Arblib.add_error!(Arb(π), Mag(0.1)),
+            add_error(Arb(π), Mag(0.1)),
             Arb(π),
             0,
             sqrt(eps(Arb)),
@@ -74,14 +67,10 @@
 
     # Test that it returns NaN in case it can't prove we have a root unless strict is true
     # Double root
-    @test isnan(ArbExtras.refine_root(x -> cos(x) - 1, Arblib.add_error!(Arb(0), Mag(1))))
+    @test isnan(ArbExtras.refine_root(x -> cos(x) - 1, setball(Arb, 0, 1)))
     @test isequal(
-        ArbExtras.refine_root(
-            x -> cos(x) - 1,
-            Arblib.add_error!(Arb(0), Mag(1)),
-            strict = false,
-        ),
-        Arblib.add_error!(Arb(0), Mag(1)),
+        ArbExtras.refine_root(x -> cos(x) - 1, setball(Arb, 0, 1), strict = false),
+        setball(Arb, 0, 1),
     )
 
     # Test that it stops correctly if the enclosure doesn't improve
@@ -98,7 +87,7 @@
 
     # Root on endpoint of interval
     # Enclosure which has 1 as an endpoint
-    enclosure = Arblib.add_error!(Arb(1.125), Arblib.set_ui_2exp!(Mag(), unsigned(1), -3))
+    enclosure = setball(Arb, 1.125, Arblib.set_ui_2exp!(Mag(), unsigned(1), -3))
     @test isnan(ArbExtras.refine_root(sinpi, enclosure))
     root = ArbExtras.refine_root(sinpi, enclosure, strict = false)
     @test Arblib.overlaps(root, enclosure)
@@ -120,15 +109,11 @@
     end
     f(x) = x - 1
 
-    @test Arblib.radius(ArbExtras.refine_root(f, Arblib.add_error!(Arb(1.1), Mag(1)))) <
-          Arblib.radius(
-        ArbExtras.refine_root(f, Arblib.add_error!(Arb(1.1), Mag(1)), atol = 1e-1),
-    )
+    @test Arblib.radius(ArbExtras.refine_root(f, setball(Arb, 1.1, 1))) <
+          Arblib.radius(ArbExtras.refine_root(f, setball(Arb, 1.1, 1), atol = 1e-1))
     @test Arblib.radius(
-        ArbExtras.refine_root(f, Arblib.add_error!(Arb(1.1), Mag(1)), max_iterations = 40),
-    ) < Arblib.radius(
-        ArbExtras.refine_root(f, Arblib.add_error!(Arb(1.1), Mag(1)), max_iterations = 20),
-    )
+        ArbExtras.refine_root(f, setball(Arb, 1.1, 1), max_iterations = 40),
+    ) < Arblib.radius(ArbExtras.refine_root(f, setball(Arb, 1.1, 1), max_iterations = 20))
 end
 
 @testset "refine_root_bisection" begin
@@ -139,41 +124,23 @@ end
         # Problems with the root away from zero so that the relative
         # tolerance is relevant
         [
-            (sin, Arblib.add_error!(root, Mag(1)), root, 0, sqrt(sqrt(eps(Arb)))) for
+            (sin, add_error(root, Mag(1)), root, 0, sqrt(sqrt(eps(Arb)))) for
             root in Arb(π) .* [-10:-1; 1:10]
         ]...,
-        (
-            x -> exp(x - 1) - 1,
-            Arblib.add_error!(Arb(1.5), Mag(1)),
-            Arb(1),
-            0,
-            sqrt(sqrt(eps(Arb))),
-        ),
-        (
-            x -> exp(x + 1) - 1,
-            Arblib.add_error!(Arb(-1.5), Mag(1)),
-            Arb(-1),
-            0,
-            sqrt(sqrt(eps(Arb))),
-        ),
+        (x -> exp(x - 1) - 1, setball(Arb, 1.5, 1), Arb(1), 0, sqrt(sqrt(eps(Arb)))),
+        (x -> exp(x + 1) - 1, setball(Arb, -1.5, 1), Arb(-1), 0, sqrt(sqrt(eps(Arb)))),
 
         # Problems where the root is at zero so that the absolute
         # tolerance is relevant
-        (sin, Arblib.add_error!(Arb(0.1), Mag(1)), Arb(0), sqrt(sqrt(eps(Arb))), 0),
-        (
-            x -> exp(x) - 1,
-            Arblib.add_error!(Arb(0.1), Mag(1)),
-            Arb(0),
-            sqrt(sqrt(eps(Arb))),
-            0,
-        ),
+        (sin, setball(Arb, 0.1, 1), Arb(0), sqrt(sqrt(eps(Arb))), 0),
+        (x -> exp(x) - 1, setball(Arb, 0.1, 1), Arb(0), sqrt(sqrt(eps(Arb))), 0),
         # Zero is exactly at the midpoint
-        (sin, Arblib.add_error!(Arb(0), Mag(1)), Arb(0), sqrt(sqrt(eps(Arb))), 0),
+        (sin, setball(Arb, 0, 1), Arb(0), sqrt(sqrt(eps(Arb))), 0),
 
         # ArbPoly
         (
             Arblib.fromroots(ArbPoly, [1, 2, 3]),
-            Arblib.add_error!(Arb(2.001), Mag(0.01)),
+            setball(Arb, 2.001, 0.01),
             Arb(2),
             0,
             sqrt(sqrt(eps(Arb))),

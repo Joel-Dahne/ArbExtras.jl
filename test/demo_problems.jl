@@ -48,8 +48,7 @@ function demo_problem(i::Integer, thin = false)
     elseif xmin == :right
         xmin = Arb(b)
     else
-        xmin = convert(Arb, xmin)
-        Arblib.add_error!(xmin, Arb(1e-3))
+        xmin = add_error(convert(Arb, xmin), Mag(1e-3))
     end
 
     if xmax == :left
@@ -57,8 +56,7 @@ function demo_problem(i::Integer, thin = false)
     elseif xmax == :right
         xmax = Arb(b)
     else
-        xmax = convert(Arb, xmax)
-        Arblib.add_error!(xmax, Arb(1e-3))
+        xmax = add_error(convert(Arb, xmax), Mag(1e-3))
     end
 
 
@@ -81,8 +79,8 @@ function demo_problem(i::Integer, thin = false)
 
     if thin
         # Thin interval around roots
-        interval_min = Arblib.add_error!(copy(xmin), Arf(1e-2))
-        interval_max = Arblib.add_error!(copy(xmax), Arf(1e-2))
+        interval_min = add_error(xmin, Mag(1e-2))
+        interval_max = add_error(xmax, Mag(1e-2))
         # Intersect with interval
         c_min, d_min = getinterval(Arf, intersect(Arb((a, b)), interval_min))
         c_max, d_max = getinterval(Arf, intersect(Arb((a, b)), interval_max))
