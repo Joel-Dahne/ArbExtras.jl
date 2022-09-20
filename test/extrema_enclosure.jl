@@ -42,21 +42,21 @@
                     # so it might not return exactly zero for the
                     # minimum, therefore we have to check the absolute
                     # tolerance instead of the relative one.
-                    @test Arblib.radius(Arb, min3) <= sqrt(eps(Arb))
+                    @test radius(Arb, min3) <= sqrt(eps(Arb))
                 else
-                    @test Arblib.radius(Arb, min3) <= sqrt(eps(Arb)) * abs(min3)
+                    @test radius(Arb, min3) <= sqrt(eps(Arb)) * abs(min3)
                 end
-                @test Arblib.radius(Arb, max3) <= sqrt(eps(Arb)) * abs(max3)
+                @test radius(Arb, max3) <= sqrt(eps(Arb)) * abs(max3)
                 if abs_value && Arblib.contains_zero(min4)
                     # This case is not handled very well at the moment
                     # so it might not return exactly zero for the
                     # minimum, therefore we have to check the absolute
                     # tolerance instead of the relative one.
-                    @test Arblib.radius(Arb, min4) <= sqrt(eps(Arb))
+                    @test radius(Arb, min4) <= sqrt(eps(Arb))
                 else
-                    @test Arblib.radius(Arb, min4) <= sqrt(eps(Arb)) * abs(min4)
+                    @test radius(Arb, min4) <= sqrt(eps(Arb)) * abs(min4)
                 end
-                @test Arblib.radius(Arb, max4) <= sqrt(eps(Arb)) * abs(max4)
+                @test radius(Arb, max4) <= sqrt(eps(Arb)) * abs(max4)
             end
         end
     end

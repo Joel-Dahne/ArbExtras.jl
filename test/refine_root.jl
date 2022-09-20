@@ -52,14 +52,14 @@
 
     for (f, df, enclosure, answer, atol, rtol) in problems
         root = ArbExtras.refine_root(f, enclosure; atol, rtol)
-        aerror = 2Arblib.radius(Arb, root)
+        aerror = 2radius(Arb, root)
         rerror = aerror / root
         @test Arblib.overlaps(root, answer)
         @test aerror < atol || rerror < rtol
 
         # Giving derivative explicitly
         root = ArbExtras.refine_root(f, enclosure; df, atol, rtol)
-        aerror = 2Arblib.radius(Arb, root)
+        aerror = 2radius(Arb, root)
         rerror = aerror / root
         @test Arblib.overlaps(root, answer)
         @test aerror < atol || rerror < rtol
@@ -109,11 +109,10 @@
     end
     f(x) = x - 1
 
-    @test Arblib.radius(ArbExtras.refine_root(f, setball(Arb, 1.1, 1))) <
-          Arblib.radius(ArbExtras.refine_root(f, setball(Arb, 1.1, 1), atol = 1e-1))
-    @test Arblib.radius(
-        ArbExtras.refine_root(f, setball(Arb, 1.1, 1), max_iterations = 40),
-    ) < Arblib.radius(ArbExtras.refine_root(f, setball(Arb, 1.1, 1), max_iterations = 20))
+    @test radius(ArbExtras.refine_root(f, setball(Arb, 1.1, 1))) <
+          radius(ArbExtras.refine_root(f, setball(Arb, 1.1, 1), atol = 1e-1))
+    @test radius(ArbExtras.refine_root(f, setball(Arb, 1.1, 1), max_iterations = 40)) <
+          radius(ArbExtras.refine_root(f, setball(Arb, 1.1, 1), max_iterations = 20))
 end
 
 @testset "refine_root_bisection" begin

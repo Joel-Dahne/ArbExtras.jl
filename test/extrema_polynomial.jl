@@ -79,8 +79,8 @@
         @test Arblib.overlaps(min, min1)
         @test Arblib.overlaps(max, max1)
 
-        @test Arblib.radius(min1) < sqrt(eps(Arb))
-        @test Arblib.radius(max1) < sqrt(eps(Arb))
+        @test radius(min1) < sqrt(eps(Arb))
+        @test radius(max1) < sqrt(eps(Arb))
     end
 
     # Polynomial with NaN
@@ -173,8 +173,8 @@
             @test Arblib.overlaps(min, min11)
             @test Arblib.overlaps(max, max11)
 
-            @test Arblib.radius(min11) < sqrt(eps(Arb))
-            @test Arblib.radius(max11) < sqrt(eps(Arb))
+            @test radius(min11) < sqrt(eps(Arb))
+            @test radius(max11) < sqrt(eps(Arb))
         end
 
         # Polynomial with NaN
