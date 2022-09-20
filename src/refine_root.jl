@@ -119,7 +119,7 @@ function refine_root(
 
     if strict && !isproved
         verbose && @warn "could not prove root"
-        return Arb(NaN, prec = precision(root))
+        return Arblib.indeterminate!(root)
     else
         return root
     end
