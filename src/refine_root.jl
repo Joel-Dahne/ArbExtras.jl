@@ -1,6 +1,6 @@
 """
-    refine_root(f, root::Arb; atol, rtol, min_iterations, max_iterations, strict)
-    refine_root(f::ArbPoly, root::Arb; atol, rtol, min_iterations, max_iterations, strict)
+    refine_root(f, root::Arb; df, atol, rtol, min_iterations, max_iterations, strict)
+    refine_root(f::ArbPoly, root::Arb; df, atol, rtol, min_iterations, max_iterations, strict)
 
 Refine the given root of the function `f`.
 
@@ -10,9 +10,11 @@ iterations. The method can only handle simple roots contained in the
 interior of the enclosure and to work the derivative must be non-zero
 on the whole enclosure.
 
-The function `f` can be either an `ArbPoly` or a regular function. If
-it's a regular function then the derivative is computed using
-`ArbSeries`.
+The function `f` can be either an `ArbPoly` or a regular function. By
+default the derivative is computed by differentiating the polynomial,
+in the case of `ArbPoly`, or using `ArbSeries`, in the case of a
+regular function. Alternatively the keyword argument `df` can be set
+to a function for computing the derivative.
 
 At each iteration it checks if the required tolerance is met according
 to [`check_tolerance`](@ref). The default tolerances are `atol = 0`
@@ -55,6 +57,7 @@ root.
 function refine_root(
     f,
     root::Arb;
+    df = f isa ArbPoly ? Arblib.derivative(f) : x -> f(ArbSeries((x, 1)))[1],
     atol = 0,
     rtol = 4eps(one(root)),
     min_iterations = 1,
@@ -64,12 +67,7 @@ function refine_root(
 )
     original_root = root
     root = copy(root)
-    mid = Arblib.midpoint(Arb, root)
-    if f isa ArbPoly
-        df = Arblib.derivative(f)
-    else
-        series = ArbSeries((root, 1))
-    end
+    mid = midpoint(Arb, root)
 
     verbose && @info "enclosure: $root"
 
@@ -78,11 +76,7 @@ function refine_root(
     for i = 1:max_iterations
         # Compute new enclosure
         y = f(mid)
-        if f isa ArbPoly
-            dy = df(root)
-        else
-            dy = f(series)[1]
-        end
+        dy = df(root)
         new_root = mid - y / dy
 
         # Note that since Arblib.intersection! only returns an
@@ -119,11 +113,8 @@ function refine_root(
         end
         error_previous = error
 
-        # Update values
+        # Update midpoint
         Arblib.set!(mid, Arblib.midref(root))
-        if !(f isa ArbPoly)
-            series[0] = root
-        end
     end
 
     if strict && !isproved

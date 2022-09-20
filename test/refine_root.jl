@@ -6,11 +6,12 @@
         # Problems with the root away from zero so that the relative
         # tolerance is relevant
         [
-            (sin, Arblib.add_error!(root, Mag(1)), root, 0, sqrt(eps(Arb))) for
+            (sin, cos, Arblib.add_error!(root, Mag(1)), root, 0, sqrt(eps(Arb))) for
             root in Arb(π) .* [-10:-1; 1:10]
         ]...,
         (
             x -> exp(x - 1) - 1,
+            x -> exp(x - 1),
             Arblib.add_error!(Arb(1.5), Mag(1)),
             Arb(1),
             0,
@@ -18,6 +19,7 @@
         ),
         (
             x -> exp(x + 1) - 1,
+            x -> exp(x + 1),
             Arblib.add_error!(Arb(-1.5), Mag(1)),
             Arb(-1),
             0,
@@ -26,12 +28,20 @@
 
         # Problems where the root is at zero so that the absolute
         # tolerance is relevant
-        (sin, Arblib.add_error!(Arb(0.1), Mag(1)), Arb(0), sqrt(eps(Arb)), 0),
-        (x -> exp(x) - 1, Arblib.add_error!(Arb(0.1), Mag(1)), Arb(0), sqrt(eps(Arb)), 0),
+        (sin, cos, Arblib.add_error!(Arb(0.1), Mag(1)), Arb(0), sqrt(eps(Arb)), 0),
+        (
+            x -> exp(x) - 1,
+            exp,
+            Arblib.add_error!(Arb(0.1), Mag(1)),
+            Arb(0),
+            sqrt(eps(Arb)),
+            0,
+        ),
 
         # ArbPoly
         (
             Arblib.fromroots(ArbPoly, [1, 2, 3]),
+            Arblib.derivative(Arblib.fromroots(ArbPoly, [1, 2, 3])),
             Arblib.add_error!(Arb(2.001), Mag(0.01)),
             Arb(2),
             0,
@@ -39,6 +49,7 @@
         ),
         (
             Arblib.fromroots(ArbPoly, [-Arb(π), Arb(π)]),
+            Arblib.derivative(Arblib.fromroots(ArbPoly, [-Arb(π), Arb(π)])),
             Arblib.add_error!(Arb(π), Mag(0.1)),
             Arb(π),
             0,
@@ -46,8 +57,15 @@
         ),
     ]
 
-    for (f, enclosure, answer, atol, rtol) in problems
+    for (f, df, enclosure, answer, atol, rtol) in problems
         root = ArbExtras.refine_root(f, enclosure; atol, rtol)
+        aerror = 2Arblib.radius(Arb, root)
+        rerror = aerror / root
+        @test Arblib.overlaps(root, answer)
+        @test aerror < atol || rerror < rtol
+
+        # Giving derivative explicitly
+        root = ArbExtras.refine_root(f, enclosure; df, atol, rtol)
         aerror = 2Arblib.radius(Arb, root)
         rerror = aerror / root
         @test Arblib.overlaps(root, answer)
