@@ -83,6 +83,67 @@
         @test_throws ArgumentError ArbExtras.minimum_enclosure(identity, Arf(2), Arf(Inf))
         @test_throws ArgumentError ArbExtras.maximum_enclosure(identity, Arf(2), Arf(Inf))
 
+        # Test lbound_tol and ubound_tol
+        # Should terminate after one evaluation
+        @test all(
+            contains.(
+                ArbExtras.extrema_enclosure(
+                    cos,
+                    Arf(-4),
+                    Arf(4),
+                    lbound_tol = -2,
+                    ubound_tol = 2,
+                    degree = -1,
+                ),
+                Arb((-1, 1)),
+            ),
+        )
+        @test contains(
+            ArbExtras.minimum_enclosure(cos, Arf(-4), Arf(4), lbound_tol = -2, degree = -1),
+            Arb((-1, 1)),
+        )
+        @test contains(
+            ArbExtras.maximum_enclosure(cos, Arf(-4), Arf(4), ubound_tol = 2, degree = -1),
+            Arb((-1, 1)),
+        )
+        # Use only one of lbound_tol or ubound_tol for extrema_enclosure
+        # The one for which it is not used should satisfy the
+        # tolerance but not the other one. In the current
+        # implementation the tolerance for either the minimum of the
+        # maximum can affect the result for the other one since both
+        # of them are always computed on the bisected intervals. But
+        # in general they should not get the full precision.
+        @test ArbExtras.check_tolerance.(
+            ArbExtras.extrema_enclosure(cos, Arf(-4), Arf(4), lbound_tol = -2),
+            rtol = sqrt(eps(Arb)),
+        ) == (false, true)
+        @test ArbExtras.check_tolerance.(
+            ArbExtras.extrema_enclosure(cos, Arf(-4), Arf(4), ubound_tol = 2),
+            rtol = sqrt(eps(Arb)),
+        ) == (true, false)
+        # For these cases the lbound_tol and ubound_tol should not
+        # affect result
+        @test all(
+            ArbExtras.check_tolerance.(
+                ArbExtras.extrema_enclosure(
+                    cos,
+                    Arf(-4),
+                    Arf(4),
+                    lbound_tol = -1,
+                    ubound_tol = 1,
+                ),
+                rtol = sqrt(eps(Arb)),
+            ),
+        )
+        @test ArbExtras.check_tolerance(
+            ArbExtras.minimum_enclosure(cos, Arf(-4), Arf(4), lbound_tol = -1),
+            rtol = sqrt(eps(Arb)),
+        )
+        @test ArbExtras.check_tolerance(
+            ArbExtras.maximum_enclosure(cos, Arf(-4), Arf(4), ubound_tol = 1),
+            rtol = sqrt(eps(Arb)),
+        )
+
         # Threading enabled
         @test Arblib.isequal(
             ArbExtras.extrema_enclosure(

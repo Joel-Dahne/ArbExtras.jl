@@ -53,7 +53,7 @@ function _current_lower_upper_bound(
 end
 
 """
-    extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_min, point_value_max, depth_start, maxevals, depth, threaded, verbose)
+    extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, lbound_tol, ubound_tol, abs_value, log_bisection, point_value_min, point_value_max, depth_start, maxevals, depth, threaded, verbose)
 
 Compute both the minimum and maximum of the function `f` on the
 interval `[a, b]` and return them as a 2-tuple.
@@ -70,6 +70,19 @@ argument (defaults to 8). If `degree` is negative then it will fall
 back to direct evaluation with `Arb` and not make use of
 [`extrema_series`](@ref), this is usually much slower but does not
 require the function to be implemented for `ArbSeries`.
+
+The `atol` and `rtol` argument are used to set the tolerance for when
+a subinterval is considered done and not bisected further, see
+[`check_tolerance`](@ref) for details. The `lbound_tol` and
+`ubound_tol` arguments can optionally be set to give another criteria
+for when to stop bisection of subintervals. For the minimum a
+subinterval is considered done if the enclosure of its minimum is
+strictly greater than `lbound_tol`, for the maximum if its maximum is
+strictly less than `ubound_tol`. This can be useful if you mostly care
+about whether the minimum/maximum is less/greater than some specific
+value, then you don't need to bisect if the current enclosure is good
+enough. See also [`bounded_by`](@ref) if you only need to prove that
+`f` is bounded by some value.
 
 If `abs_value = true` the compute the extrema of `abs(f(x))` on the
 interval `[a, b]`. For the computation of the maximum this is mostly
@@ -117,6 +130,8 @@ function extrema_enclosure(
     degree::Integer = 8,
     atol = 0,
     rtol = sqrt(eps(one(a))),
+    lbound_tol = Arb(Inf),
+    ubound_tol = Arb(-Inf),
     abs_value = false,
     log_bisection = false,
     point_value_min::Arb = Arb(Inf, prec = precision(a)),
@@ -136,6 +151,9 @@ function extrema_enclosure(
         abs_value && Arblib.nonnegative_part!(res, res)
         return res, res
     end
+
+    lbound_tol = convert(Arb, lbound_tol)
+    ubound_tol = convert(Arb, ubound_tol)
 
     # List of intervals
     intervals = bisect_interval_recursive(a, b, depth_start, log_midpoint = log_bisection)
@@ -227,8 +245,12 @@ function extrema_enclosure(
             possible_min = values_min_low[i] <= min_current_upp || !isfinite(values_min[i])
             possible_max = max_current_low <= values_max_upp[i] || !isfinite(values_max[i])
             if possible_min || possible_max
-                tol_min = check_tolerance(values_min[i]; atol, rtol)
-                tol_max = check_tolerance(values_max[i]; atol, rtol)
+                tol_min =
+                    check_tolerance(values_min[i]; atol, rtol) ||
+                    isfinite(values_min[i]) && values_min[i] > lbound_tol
+                tol_max =
+                    check_tolerance(values_max[i]; atol, rtol) ||
+                    isfinite(values_max[i]) && values_max[i] < ubound_tol
 
                 if (!possible_min || tol_min) && (!possible_max || tol_max)
                     # If the interval satisfies the tolerance then add
@@ -284,7 +306,7 @@ function extrema_enclosure(
 end
 
 """
-    minimum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_min, depth_start, maxevals, depth, threaded, verbose)
+    minimum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, lbound_tol, abs_value, log_bisection, point_value_min, depth_start, maxevals, depth, threaded, verbose)
 
 Compute the minimum of the function `f` on the interval `[a, b]`.
 
@@ -298,6 +320,7 @@ function minimum_enclosure(
     degree::Integer = 8,
     atol = 0,
     rtol = sqrt(eps(one(a))),
+    lbound_tol = Arb(Inf),
     abs_value = false,
     log_bisection = false,
     point_value_min::Arb = Arb(Inf, prec = precision(a)),
@@ -316,6 +339,8 @@ function minimum_enclosure(
         abs_value && Arblib.nonnegative_part!(res, res)
         return res
     end
+
+    lbound_tol = convert(Arb, lbound_tol)
 
     # List of intervals
     intervals = bisect_interval_recursive(a, b, depth_start, log_midpoint = log_bisection)
@@ -389,7 +414,8 @@ function minimum_enclosure(
         for i in eachindex(intervals)
             # Check if the minimum could be located in the interval
             if values_low[i] <= min_current_upp || !isfinite(values[i])
-                if check_tolerance(values[i]; atol, rtol)
+                if check_tolerance(values[i]; atol, rtol) ||
+                   isfinite(values[i]) && values[i] > lbound_tol
                     # If the interval satisfies the tolerance then add
                     # it to the lower and upper bound of the minimum
                     # for the finished parts of the interval.
@@ -431,7 +457,7 @@ function minimum_enclosure(
 end
 
 """
-    maximum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, abs_value, log_bisection, point_value_max, depth_start, maxevals, depth, threaded, verbose)
+    maximum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, ubound_tol, abs_value, log_bisection, point_value_max, depth_start, maxevals, depth, threaded, verbose)
 
 Compute the maximum of the function `f` on the interval `[a, b]`.
 
@@ -445,6 +471,7 @@ function maximum_enclosure(
     degree::Integer = 8,
     atol = 0,
     rtol = sqrt(eps(one(a))),
+    ubound_tol = Arb(-Inf),
     abs_value = false,
     log_bisection = false,
     point_value_max::Arb = Arb(-Inf, prec = precision(a)),
@@ -461,6 +488,8 @@ function maximum_enclosure(
     if a == b
         return maybe_abs(f(Arb(a)))
     end
+
+    ubound_tol = convert(Arb, ubound_tol)
 
     # List of intervals
     intervals = bisect_interval_recursive(a, b, depth_start, log_midpoint = log_bisection)
@@ -534,7 +563,8 @@ function maximum_enclosure(
         for i in eachindex(intervals)
             # Check if the maximum could be located in the interval
             if max_current_low <= values_upp[i] || !isfinite(values[i])
-                if check_tolerance(values[i]; atol, rtol)
+                if check_tolerance(values[i]; atol, rtol) ||
+                   isfinite(values[i]) && values[i] < ubound_tol
                     # If the interval satisfies the tolerance then add
                     # it to the lower and upper bound of the maximum
                     # for the finished parts of the interval.
