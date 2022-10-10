@@ -62,16 +62,16 @@
     end
 
     @testset "special cases" begin
+        f = x -> -2x
+
         # Thin interval
-        @test ArbExtras.extrema_enclosure(x -> -2x, Arf(2), Arf(2)) == (Arb(-4), Arb(-4))
-        @test ArbExtras.minimum_enclosure(x -> -2x, Arf(2), Arf(2)) == Arb(-4)
-        @test ArbExtras.maximum_enclosure(x -> -2x, Arf(2), Arf(2)) == Arb(-4)
-        @test ArbExtras.extrema_enclosure(x -> -2x, Arf(2), Arf(2), abs_value = true) ==
+        @test ArbExtras.extrema_enclosure(f, Arf(2), Arf(2)) == (Arb(-4), Arb(-4))
+        @test ArbExtras.minimum_enclosure(f, Arf(2), Arf(2)) == Arb(-4)
+        @test ArbExtras.maximum_enclosure(f, Arf(2), Arf(2)) == Arb(-4)
+        @test ArbExtras.extrema_enclosure(f, Arf(2), Arf(2), abs_value = true) ==
               (Arb(4), Arb(4))
-        @test ArbExtras.minimum_enclosure(x -> -2x, Arf(2), Arf(2), abs_value = true) ==
-              Arb(4)
-        @test ArbExtras.maximum_enclosure(x -> -2x, Arf(2), Arf(2), abs_value = true) ==
-              Arb(4)
+        @test ArbExtras.minimum_enclosure(f, Arf(2), Arf(2), abs_value = true) == Arb(4)
+        @test ArbExtras.maximum_enclosure(f, Arf(2), Arf(2), abs_value = true) == Arb(4)
 
         # Non-ordered endpoints
         @test_throws ArgumentError ArbExtras.extrema_enclosure(identity, Arf(2), Arf(1))
@@ -146,46 +146,28 @@
 
         # Threading enabled
         @test Arblib.isequal(
-            ArbExtras.extrema_enclosure(
-                x -> -2x,
-                Arf(2),
-                Arf(3),
-                degree = -1,
-                threaded = true,
-            ),
-            ArbExtras.extrema_enclosure(x -> -2x, Arf(2), Arf(3), degree = -1),
+            ArbExtras.extrema_enclosure(f, Arf(2), Arf(3), degree = -1, threaded = true),
+            ArbExtras.extrema_enclosure(f, Arf(2), Arf(3), degree = -1),
         )
         @test Arblib.isequal(
-            ArbExtras.extrema_enclosure(x -> -2x, Arf(2), Arf(3), threaded = true),
-            ArbExtras.extrema_enclosure(x -> -2x, Arf(2), Arf(3)),
+            ArbExtras.extrema_enclosure(f, Arf(2), Arf(3), threaded = true),
+            ArbExtras.extrema_enclosure(f, Arf(2), Arf(3)),
         )
         @test Arblib.isequal(
-            ArbExtras.minimum_enclosure(
-                x -> -2x,
-                Arf(2),
-                Arf(3),
-                degree = -1,
-                threaded = true,
-            ),
-            ArbExtras.minimum_enclosure(x -> -2x, Arf(2), Arf(3), degree = -1),
+            ArbExtras.minimum_enclosure(f, Arf(2), Arf(3), degree = -1, threaded = true),
+            ArbExtras.minimum_enclosure(f, Arf(2), Arf(3), degree = -1),
         )
         @test Arblib.isequal(
-            ArbExtras.minimum_enclosure(x -> -2x, Arf(2), Arf(3), threaded = true),
-            ArbExtras.minimum_enclosure(x -> -2x, Arf(2), Arf(3)),
+            ArbExtras.minimum_enclosure(f, Arf(2), Arf(3), threaded = true),
+            ArbExtras.minimum_enclosure(f, Arf(2), Arf(3)),
         )
         @test Arblib.isequal(
-            ArbExtras.maximum_enclosure(
-                x -> -2x,
-                Arf(2),
-                Arf(3),
-                degree = -1,
-                threaded = true,
-            ),
-            ArbExtras.maximum_enclosure(x -> -2x, Arf(2), Arf(3), degree = -1),
+            ArbExtras.maximum_enclosure(f, Arf(2), Arf(3), degree = -1, threaded = true),
+            ArbExtras.maximum_enclosure(f, Arf(2), Arf(3), degree = -1),
         )
         @test Arblib.isequal(
-            ArbExtras.maximum_enclosure(x -> -2x, Arf(2), Arf(3), threaded = true),
-            ArbExtras.maximum_enclosure(x -> -2x, Arf(2), Arf(3)),
+            ArbExtras.maximum_enclosure(f, Arf(2), Arf(3), threaded = true),
+            ArbExtras.maximum_enclosure(f, Arf(2), Arf(3)),
         )
 
         # Verbose = true
