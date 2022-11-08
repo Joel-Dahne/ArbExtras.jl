@@ -88,6 +88,26 @@
     @test isnan(ArbExtras.minimum_polynomial(ArbPoly(NaN), Arf(0), Arf(1)))
     @test isnan(ArbExtras.maximum_polynomial(ArbPoly(NaN), Arf(0), Arf(1)))
 
+    # Wide polynomials
+    @test_logs (:info, "could not evaluate p to any meaningful precision") match_mode = :any ArbExtras.extrema_polynomial(
+        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1)), Mag(100))),
+        Arf(-1),
+        Arf(1),
+        verbose = true,
+    )
+    @test_logs (:info, "could not evaluate p to any meaningful precision") match_mode = :any ArbExtras.minimum_polynomial(
+        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1)), Mag(100))),
+        Arf(-1),
+        Arf(1),
+        verbose = true,
+    )
+    @test_logs (:info, "could not evaluate p to any meaningful precision") match_mode = :any ArbExtras.maximum_polynomial(
+        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1)), Mag(100))),
+        Arf(-1),
+        Arf(1),
+        verbose = true,
+    )
+
     # TODO: Isolate roots fails
     #(Arblib.integral(Arblib.fromroots(ArbPoly, [0, 1, 2, 3, 4])), (Arf(-1), Arf(6)), Arb(0), Arb(6)),
 

@@ -38,6 +38,14 @@ using [`isolate_roots`](@ref) and refining them using
 [`refine_root`](@ref), then evaluating `p` on the potential zeros as
 well as the endpoints `a`, `b` of the interval.
 
+If `p` cannot be evaluated to a reasonable precision, because its
+coefficients are too wide, it does in general not make sense to try
+and isolate the roots. To check for this we compute `min(radius(p(a)),
+radius(p(b)))` and `p(Arb((a, b)))`. If the quotient is larger than
+`0.99`, meaning we don't even reduce the radius by one percent by
+evaluating at the endpoints instead of the whole interval, we don't
+try to isolate the roots but just evaluate the polynomial directly.
+
 If `abs_value = true` the compute the extrema of `abs(p(x))` on the
 interval `[a, b]`. For the computation of the maximum this is mostly
 the same, only difference is that we have to take the absolute value
@@ -112,6 +120,18 @@ function extrema_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbo
             return min_value, max_endpoints
         else
             return min_endpoints, max_endpoints
+        end
+    end
+
+    # Short circuit in case p cannot be evaluated to any meaningful
+    # precision.
+    pab = p(Arb((a, b)))
+    if min(radius(pa), radius(pb)) / radius(pab) > Mag(0.99)
+        verbose && @info "could not evaluate p to any meaningful precision"
+        if min_done
+            return min_value, max(max_endpoints, pab)
+        else
+            return min(min_endpoints, pab), max(max_endpoints, pab)
         end
     end
 
@@ -246,6 +266,14 @@ function minimum_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbo
     # attained at endpoints
     Arblib.degree(p) <= 1 && return m_endpoints
 
+    # Short circuit in case p cannot be evaluated to any meaningful
+    # precision.
+    pab = p(Arb((a, b)))
+    if radius(m_endpoints) / radius(pab) > Mag(0.99)
+        verbose && @info "could not evaluate p to any meaningful precision"
+        return min(m_endpoints, pab)
+    end
+
     # Compute the roots of the derivative
     dp = Arblib.derivative(p)
     roots, flags = isolate_roots(dp, a, b)
@@ -337,6 +365,14 @@ function maximum_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbo
     # Short circuit on constant or linear polynomial where maximum is
     # attained at endpoints
     Arblib.degree(p) <= 1 && return m_endpoints
+
+    # Short circuit in case p cannot be evaluated to any meaningful
+    # precision.
+    pab = p(Arb((a, b)))
+    if radius(m_endpoints) / radius(pab) > Mag(0.99)
+        verbose && @info "could not evaluate p to any meaningful precision"
+        return max(m_endpoints, pab)
+    end
 
     # Compute the roots of the derivative
     dp = Arblib.derivative(p)
