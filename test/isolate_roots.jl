@@ -1,57 +1,60 @@
-@testset "check_interval" begin
+@testset "_check_root_interval" begin
     @testset "function" begin
         # Unique zero in the interval
-        @test ArbExtras.check_interval(sin, Arf(-1), Arf(1)) == (true, true)
-        @test ArbExtras.check_interval(sin, Arf(-1e-20), Arf(1e-20)) == (true, true)
-        @test ArbExtras.check_interval(cos, Arf(1), Arf(2)) == (true, true)
-        @test ArbExtras.check_interval(x -> sin(π * x / 2), Arf(1.5), Arf(2.5)) ==
+        @test ArbExtras._check_root_interval(sin, Arf(-1), Arf(1)) == (true, true)
+        @test ArbExtras._check_root_interval(sin, Arf(-1e-20), Arf(1e-20)) == (true, true)
+        @test ArbExtras._check_root_interval(cos, Arf(1), Arf(2)) == (true, true)
+        @test ArbExtras._check_root_interval(x -> sin(π * x / 2), Arf(1.5), Arf(2.5)) ==
               (true, true)
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(
             x -> sin(π * x / 2),
             Arf(2 - 1e-10),
             Arf(2 + 1e-10),
         ) == (true, true)
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(
             x -> (x - 1) * (x - 2) * (x - 3),
             Arf(1.9),
             Arf(2.1),
         ) == (true, true)
 
         # No zero in the interval
-        @test ArbExtras.check_interval(sin, Arf(1e-10), Arf(2e-10)) == (false, false)
-        @test ArbExtras.check_interval(sin, Arf(1), Arf(3)) == (false, false)
-        @test ArbExtras.check_interval(cos, Arf(-1), Arf(1)) == (false, false)
-        @test ArbExtras.check_interval(x -> sin(π * x / 2), Arf(0.5), Arf(1.5)) ==
+        @test ArbExtras._check_root_interval(sin, Arf(1e-10), Arf(2e-10)) == (false, false)
+        @test ArbExtras._check_root_interval(sin, Arf(1), Arf(3)) == (false, false)
+        @test ArbExtras._check_root_interval(cos, Arf(-1), Arf(1)) == (false, false)
+        @test ArbExtras._check_root_interval(x -> sin(π * x / 2), Arf(0.5), Arf(1.5)) ==
               (false, false)
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(
             x -> (x - 1) * (x - 2) * (x - 3),
             Arf(1.4),
             Arf(1.6),
         ) == (false, false)
 
         # Multiple simple zeros in the interval
-        @test ArbExtras.check_interval(sin, Arf(-1), Arf(4)) == (true, false)
-        @test ArbExtras.check_interval(sin, Arf(-4), Arf(1)) == (true, false)
-        @test ArbExtras.check_interval(cos, Arf(-2), Arf(2)) == (true, false)
-        @test ArbExtras.check_interval(x -> sin(π * x / 2), Arf(1), Arf(2)) == (true, false)
-        @test ArbExtras.check_interval(x -> sin(π * x / 2), Arf(2), Arf(3)) == (true, false)
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(sin, Arf(-1), Arf(4)) == (true, false)
+        @test ArbExtras._check_root_interval(sin, Arf(-4), Arf(1)) == (true, false)
+        @test ArbExtras._check_root_interval(cos, Arf(-2), Arf(2)) == (true, false)
+        @test ArbExtras._check_root_interval(x -> sin(π * x / 2), Arf(1), Arf(2)) ==
+              (true, false)
+        @test ArbExtras._check_root_interval(x -> sin(π * x / 2), Arf(2), Arf(3)) ==
+              (true, false)
+        @test ArbExtras._check_root_interval(
             x -> (x - 1) * (x - 1 + eps()),
             Arf(1 - eps()),
             Arf(1 + eps()),
         ) == (true, false)
 
         # Zero of higher order
-        @test ArbExtras.check_interval(x -> x^2, Arf(-eps()), Arf(eps())) == (true, false)
+        @test ArbExtras._check_root_interval(x -> x^2, Arf(-eps()), Arf(eps())) ==
+              (true, false)
 
         # check_unique = false
-        @test ArbExtras.check_interval(sin, Arf(-1), Arf(1), check_unique = false) ==
+        @test ArbExtras._check_root_interval(sin, Arf(-1), Arf(1), check_unique = false) ==
               (true, false)
-        @test ArbExtras.check_interval(cos, Arf(-1), Arf(1), check_unique = false) ==
+        @test ArbExtras._check_root_interval(cos, Arf(-1), Arf(1), check_unique = false) ==
               (false, false)
-        @test ArbExtras.check_interval(sin, Arf(-1), Arf(4), check_unique = false) ==
+        @test ArbExtras._check_root_interval(sin, Arf(-1), Arf(4), check_unique = false) ==
               (true, false)
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(
             x -> x^2,
             Arf(-eps()),
             Arf(eps()),
@@ -62,64 +65,75 @@
     @testset "ArbPoly" begin
         x = ArbPoly([1, 0])
         # Unique zero in the interval
-        @test ArbExtras.check_interval(Arblib.fromroots(ArbPoly, [0]), Arf(-1), Arf(1)) ==
-              (true, true)
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(
+            Arblib.fromroots(ArbPoly, [0]),
+            Arf(-1),
+            Arf(1),
+        ) == (true, true)
+        @test ArbExtras._check_root_interval(
             Arblib.fromroots(ArbPoly, [-2, 0, 2]),
             Arf(-1),
             Arf(1),
         ) == (true, true)
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(
             Arblib.fromroots(ArbPoly, [0], [2im]),
             Arf(-1),
             Arf(1),
         ) == (true, true)
 
         # No zero in the interval
-        @test ArbExtras.check_interval(ArbPoly(1), Arf(-1), Arf(1)) == (false, false)
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(ArbPoly(1), Arf(-1), Arf(1)) == (false, false)
+        @test ArbExtras._check_root_interval(
             Arblib.fromroots(ArbPoly, [-2, 2]),
             Arf(-1),
             Arf(1),
         ) == (false, false)
 
         # Multiple simple zeros in the interval
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(
             Arblib.fromroots(ArbPoly, [-0.5, 0.5]),
             Arf(-1),
             Arf(1),
         ) == (true, false)
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(
             Arblib.fromroots(ArbPoly, [-1, 1]),
             Arf(-1),
             Arf(1),
         ) == (true, false)
 
         # Zero of higher order
-        @test ArbExtras.check_interval(ArbPoly(0), Arf(-1), Arf(1)) == (true, false)
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(ArbPoly(0), Arf(-1), Arf(1)) == (true, false)
+        @test ArbExtras._check_root_interval(
             Arblib.fromroots(ArbPoly, [0, 0]),
             Arf(-1),
             Arf(1),
         ) == (true, false)
 
         # check_unique = false
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(
             Arblib.fromroots(ArbPoly, [0]),
             Arf(-1),
             Arf(1),
             check_unique = false,
         ) == (true, false)
-        @test ArbExtras.check_interval(ArbPoly(1), Arf(-1), Arf(1), check_unique = false) ==
-              (false, false)
-        @test ArbExtras.check_interval(
+        @test ArbExtras._check_root_interval(
+            ArbPoly(1),
+            Arf(-1),
+            Arf(1),
+            check_unique = false,
+        ) == (false, false)
+        @test ArbExtras._check_root_interval(
             Arblib.fromroots(ArbPoly, [-0.5, 0.5]),
             Arf(-1),
             Arf(1),
             check_unique = false,
         ) == (true, false)
-        @test ArbExtras.check_interval(ArbPoly(0), Arf(-1), Arf(1), check_unique = false) ==
-              (true, false)
+        @test ArbExtras._check_root_interval(
+            ArbPoly(0),
+            Arf(-1),
+            Arf(1),
+            check_unique = false,
+        ) == (true, false)
     end
 end
 

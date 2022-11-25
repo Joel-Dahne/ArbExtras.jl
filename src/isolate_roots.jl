@@ -1,5 +1,5 @@
 """
-    check_interval(f, a::Arf, b::Arf; check_unique = true)
+    _check_root_interval(f, a::Arf, b::Arf; check_unique = true, buffer1 = zero(Arb), buffer2 = zero(Arb))
 
 Check if the function `f` has a zero on the interval `[a, b]`.
 
@@ -15,47 +15,71 @@ will always be `false` in this case.
 The function `f` should satisfy the same properties as for
 [`isolate_roots`](@ref).
 
+The arguments `buffer1` and `buffer2` can optionally be given to be
+used as scratch space for the computations. This reduces the number of
+allocations required.
+
 FUTURE WORK:
 - Take values on endpoints as arguments to avoid having to compute
   them multiple times.
 
 """
-function check_interval(f, a::Arf, b::Arf; check_unique::Bool = true)
-    x = Arb((a, b))
-    maybe = Arblib.contains_zero(f(x))
+function _check_root_interval(
+    f,
+    a::Arf,
+    b::Arf;
+    check_unique::Bool = true,
+    buffer1::Arb = zero(Arb),
+    buffer2::Arb = zero(Arb),
+)
+    # buffer1 = Arb((a, b))
+    Arblib.set_interval!(buffer1, a, b)
+
+    maybe = Arblib.contains_zero(f(buffer1))
 
     maybe || return false, false
 
     check_unique || return true, false
 
-    a_sign = Arblib.sgn_nonzero(f(Arb(a)))
-    b_sign = Arblib.sgn_nonzero(f(Arb(b)))
+    a_sign = Arblib.sgn_nonzero(f(Arblib.set!(buffer2, a)))
+    b_sign = Arblib.sgn_nonzero(f(Arblib.set!(buffer2, b)))
 
     if a_sign * b_sign < 0
-        df = f(ArbSeries((x, 1)))[1]
+        df = Arblib.ref(f(ArbSeries((buffer1, 1))), 1)
         return true, !Arblib.contains_zero(df)
     else
         return true, false
     end
 end
 
-function check_interval(p::ArbPoly, a::Arf, b::Arf; check_unique::Bool = true)
-    x = Arb((a, b))
+function _check_root_interval(
+    p::ArbPoly,
+    a::Arf,
+    b::Arf;
+    check_unique::Bool = true,
+    buffer1::Arb = zero(Arb),
+    buffer2::Arb = zero(Arb),
+)
+    # buffer1 = Arb((a, b))
+    Arblib.set_interval!(buffer1, a, b)
 
-    check_unique || return Arblib.contains_zero(p(x)), false
+    check_unique || return Arblib.contains_zero(p(buffer1)), false
 
-    px, dpx = Arblib.evaluate2(p, x)
+    # buffer1, buffer2 = Arblib.evaluate(p, Arb((a, b)))
+    Arblib.evaluate2!(buffer1, buffer2, p, buffer1)
 
-    Arblib.contains_zero(px) || return false, false
+    Arblib.contains_zero(buffer1) || return false, false
 
-    a_sign = Arblib.sgn_nonzero(p(a))
-    b_sign = Arblib.sgn_nonzero(p(b))
+    Arblib.set!(buffer1, a)
+    a_sign = Arblib.sgn_nonzero(Arblib.evaluate!(buffer1, p, buffer1))
+    Arblib.set!(buffer1, b)
+    b_sign = Arblib.sgn_nonzero(Arblib.evaluate!(buffer1, p, buffer1))
 
     if a_sign * b_sign < 0
-        unique = !Arblib.contains_zero(dpx)
+        unique = !Arblib.contains_zero(buffer2)
         return true, unique
     elseif a_sign * b_sign > 0
-        maybe = Arblib.contains_zero(dpx)
+        maybe = Arblib.contains_zero(buffer2)
         return maybe, false
     else
         return true, false
@@ -140,13 +164,17 @@ function isolate_roots(
     found = empty(intervals)
     flags = BitVector()
 
+    buffer1 = Arb(prec = Arblib._precision((a, b)))
+    buffer2 = Arb(prec = Arblib._precision((a, b)))
+
     iterations = 0
     while !isempty(intervals) && iterations < depth
         iterations += 1
 
         to_split = falses(length(intervals))
         for (i, interval) in enumerate(intervals)
-            maybe, unique = check_interval(f, interval...; check_unique)
+            maybe, unique =
+                _check_root_interval(f, interval...; check_unique, buffer1, buffer2)
 
             if unique
                 push!(found, interval)
