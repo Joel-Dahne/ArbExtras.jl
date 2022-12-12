@@ -1,13 +1,21 @@
 """
-    _check_root_interval(f, a::Arf, b::Arf; check_unique = true, buffer1 = zero(Arb), buffer2 = zero(Arb))
+    _check_root_interval(f, a::Arf, b::Arf, fa_sign::Integer = Arblib.sgn_nonzero(f(Arb(a))), fb_sign::Integer = Arblib.sgn_nonzero(f(Arb(b))); check_unique = true, buffer1 = zero(Arb), buffer2 = zero(Arb))
 
 Check if the function `f` has a zero on the interval `[a, b]`.
 
 Returns `(maybe, unique)`. If `maybe` is `false` then `f` is proved to
 not have a zero on the interval, if it's `true` then `f` might or
 might not have a zero on the interval. If `unique` is `true` then `f`
-is guaranteed to have exactly one zero on the interval, if it's
-`false` then no information is given.
+is proved to have exactly one zero on the interval, if it's `false`
+then no information is given.
+
+The arguments `fa_sign` and `fb_sign` should be set to the sign of `f`
+on the endpoints `a` and `b` according to how `Arblib.sgn_nonzero`
+does it. They can be computed as
+```
+fa_sign = Arblib.sgn_nonzero(f(Arb(a)))
+fb_sign = Arblib.sgn_nonzero(f(Arb(b)))
+```
 
 If `check_unique = false` then don't check for uniqueness, `unique`
 will always be `false` in this case.
@@ -18,19 +26,16 @@ The function `f` should satisfy the same properties as for
 The arguments `buffer1` and `buffer2` can optionally be given to be
 used as scratch space for the computations. This reduces the number of
 allocations required.
-
-FUTURE WORK:
-- Take values on endpoints as arguments to avoid having to compute
-  them multiple times.
-
 """
 function _check_root_interval(
     f,
     a::Arf,
-    b::Arf;
+    b::Arf,
+    fa_sign::Integer = Arblib.sgn_nonzero(f(Arb(a))),
+    fb_sign::Integer = Arblib.sgn_nonzero(f(Arb(b)));
     check_unique::Bool = true,
     buffer1::Arb = zero(Arb),
-    buffer2::Arb = zero(Arb),
+    buffer2::Arb = zero(Arb), # Not used
 )
     # buffer1 = Arb((a, b))
     Arblib.set_interval!(buffer1, a, b)
@@ -41,10 +46,7 @@ function _check_root_interval(
 
     check_unique || return true, false
 
-    a_sign = Arblib.sgn_nonzero(f(Arblib.set!(buffer2, a)))
-    b_sign = Arblib.sgn_nonzero(f(Arblib.set!(buffer2, b)))
-
-    if a_sign * b_sign < 0
+    if fa_sign * fb_sign < 0
         df = Arblib.ref(f(ArbSeries((buffer1, 1))), 1)
         return true, !Arblib.contains_zero(df)
     else
@@ -55,7 +57,9 @@ end
 function _check_root_interval(
     p::ArbPoly,
     a::Arf,
-    b::Arf;
+    b::Arf,
+    fa_sign::Integer = Arblib.sgn_nonzero(p(Arb(a))),
+    fb_sign::Integer = Arblib.sgn_nonzero(p(Arb(b)));
     check_unique::Bool = true,
     buffer1::Arb = zero(Arb),
     buffer2::Arb = zero(Arb),
@@ -65,20 +69,15 @@ function _check_root_interval(
 
     check_unique || return Arblib.contains_zero(p(buffer1)), false
 
-    # buffer1, buffer2 = Arblib.evaluate(p, Arb((a, b)))
+    # buffer1, buffer2 = Arblib.evaluate2(p, Arb((a, b)))
     Arblib.evaluate2!(buffer1, buffer2, p, buffer1)
 
     Arblib.contains_zero(buffer1) || return false, false
 
-    Arblib.set!(buffer1, a)
-    a_sign = Arblib.sgn_nonzero(Arblib.evaluate!(buffer1, p, buffer1))
-    Arblib.set!(buffer1, b)
-    b_sign = Arblib.sgn_nonzero(Arblib.evaluate!(buffer1, p, buffer1))
-
-    if a_sign * b_sign < 0
+    if fa_sign * fb_sign < 0
         unique = !Arblib.contains_zero(buffer2)
         return true, unique
-    elseif a_sign * b_sign > 0
+    elseif fa_sign * fb_sign > 0
         maybe = Arblib.contains_zero(buffer2)
         return maybe, false
     else
@@ -159,25 +158,42 @@ function isolate_roots(
         end
     end
 
+    buffer1 = Arb(prec = Arblib._precision((a, b)))
+    buffer2 = Arb(prec = Arblib._precision((a, b)))
+
     intervals = [(a, b)]
+
+    Arblib.set!(buffer1, a)
+    Arblib.set!(buffer2, b)
+    if f isa ArbPoly
+        fa_sign = Arblib.sgn_nonzero(Arblib.evaluate!(buffer1, f, buffer1))
+        fb_sign = Arblib.sgn_nonzero(Arblib.evaluate!(buffer2, f, buffer2))
+    else
+        fa_sign = Arblib.sgn_nonzero(f(buffer1))
+        fb_sign = Arblib.sgn_nonzero(f(buffer2))
+    end
+    sign_endpoints = [(fa_sign, fb_sign)]
 
     found = empty(intervals)
     flags = BitVector()
-
-    buffer1 = Arb(prec = Arblib._precision((a, b)))
-    buffer2 = Arb(prec = Arblib._precision((a, b)))
 
     iterations = 0
     while !isempty(intervals) && iterations < depth
         iterations += 1
 
         to_split = falses(length(intervals))
-        for (i, interval) in enumerate(intervals)
-            maybe, unique =
-                _check_root_interval(f, interval...; check_unique, buffer1, buffer2)
+        for i in eachindex(intervals, sign_endpoints, to_split)
+            maybe, unique = _check_root_interval(
+                f,
+                intervals[i]...,
+                sign_endpoints[i]...;
+                check_unique,
+                buffer1,
+                buffer2,
+            )
 
             if unique
-                push!(found, interval)
+                push!(found, intervals[i])
                 push!(flags, true)
             elseif maybe
                 to_split[i] = true
@@ -186,6 +202,27 @@ function isolate_roots(
 
         if iterations < depth
             intervals = bisect_intervals(intervals, to_split)
+
+            # Compute signs of the endpoints for the newly bisected
+            # intervals
+            sign_endpoints_new = similar(intervals, eltype(sign_endpoints))
+            i = 1
+            for j in eachindex(to_split)
+                if to_split[j]
+                    mid = intervals[i][2]
+                    Arblib.set!(buffer1, mid)
+                    if f isa ArbPoly
+                        Arblib.evaluate!(buffer1, f, buffer1)
+                        fc_sign = Arblib.sgn_nonzero(buffer1)
+                    else
+                        fc_sign = Arblib.sgn_nonzero(f(buffer1))
+                    end
+                    sign_endpoints_new[i] = (sign_endpoints[j][1], fc_sign)
+                    sign_endpoints_new[i+1] = (fc_sign, sign_endpoints[j][2])
+                    i += 2
+                end
+            end
+            sign_endpoints = sign_endpoints_new
         else
             # If we are on the last iteration don't split the intervals
             intervals = intervals[to_split]
