@@ -37,6 +37,9 @@ function _check_root_interval(
     buffer1::Arb = zero(Arb),
     buffer2::Arb = zero(Arb), # Not used
 )
+    # If signs of endpoints could not be determined return immediately
+    iszero(fa_sign) || iszero(fb_sign) && return true, false
+
     # buffer1 = Arb((a, b))
     Arblib.set_interval!(buffer1, a, b)
 
@@ -64,6 +67,9 @@ function _check_root_interval(
     buffer1::Arb = zero(Arb),
     buffer2::Arb = zero(Arb),
 )
+    # If signs of endpoints could not be determined return immediately
+    iszero(fa_sign) || iszero(fb_sign) && return true, false
+
     # buffer1 = Arb((a, b))
     Arblib.set_interval!(buffer1, a, b)
 

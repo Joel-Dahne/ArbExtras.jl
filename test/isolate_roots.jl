@@ -29,6 +29,11 @@
             Arf(1.6),
         ) == (false, false)
 
+        # Zero at endpoint
+        @test ArbExtras._check_root_interval(sin, Arf(0), Arf(1)) == (true, false)
+        @test ArbExtras._check_root_interval(sin, Arf(-1), Arf(0)) == (true, false)
+        @test ArbExtras._check_root_interval(cospi, Arf(0), Arf(1 // 2)) == (true, false)
+
         # Multiple simple zeros in the interval
         @test ArbExtras._check_root_interval(sin, Arf(-1), Arf(4)) == (true, false)
         @test ArbExtras._check_root_interval(sin, Arf(-4), Arf(1)) == (true, false)
@@ -88,6 +93,14 @@
             Arf(-1),
             Arf(1),
         ) == (false, false)
+
+        # Zero at endpoint
+        @test ArbExtras._check_root_interval(ArbPoly([0, 1]), Arf(0), Arf(1)) ==
+              (true, false)
+        @test ArbExtras._check_root_interval(ArbPoly([0, 1]), Arf(-1), Arf(0)) ==
+              (true, false)
+        @test ArbExtras._check_root_interval(ArbPoly([-1, 0, 1]), Arf(0), Arf(1)) ==
+              (true, false)
 
         # Multiple simple zeros in the interval
         @test ArbExtras._check_root_interval(
