@@ -74,6 +74,69 @@
               5
     end
 
+    let p = ArbPoly((1, Arb((-1, 2))))
+        # abs_value = false
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1)),
+                (Arb((-1, 2)), Arb((0, 3))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(1)),
+            Arb((-1, 2)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(1)),
+            Arb((0, 3)),
+        )
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(1)),
+                (Arb((-3, 0)), Arb((-2, 1))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(1)),
+            Arb((-3, 0)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(1)),
+            Arb((-2, 1)),
+        )
+
+        # abs_value = true
+        abs_value = true
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value),
+                (Arb((0, 2)), Arb((0, 3))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value),
+            Arb((0, 2)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value),
+            Arb((0, 3)),
+        )
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value),
+                (Arb((0, 2)), Arb((0, 3))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value),
+            Arb((0, 2)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value),
+            Arb((0, 3)),
+        )
+    end
+
     # Degree 2
     let p = ArbPoly((-3, -1, 2))
         # abs_value = false
@@ -298,6 +361,69 @@
         @test ArbExtras._maximum_polynomial_low_degree(p, Arf(1), Arf(3); abs_value) ==
               ArbExtras._maximum_polynomial_low_degree(-p, Arf(1), Arf(3); abs_value) ==
               12
+    end
+
+    let p = ArbPoly((-3, -1, Arb((-1, 2))))
+        # abs_value = false
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1)),
+                (Arb((-5, -2)), Arb((-3, 0))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(1)),
+            Arb((-5, -2)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(1)),
+            Arb((-3, 0)),
+        )
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(1)),
+                (Arb((0, 3)), Arb((2, 5))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(1)),
+            Arb((0, 3)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(1)),
+            Arb((2, 5)),
+        )
+
+        # abs_value = true
+        abs_value = true
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value),
+                (Arb((0, 3)), Arb((2, 5))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value),
+            Arb((0, 3)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value),
+            Arb((2, 5)),
+        )
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value),
+                (Arb((0, 3)), Arb((2, 5))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value),
+            Arb((0, 3)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value),
+            Arb((2, 5)),
+        )
     end
 
     # Higher order degree

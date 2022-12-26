@@ -99,6 +99,25 @@ function _extrema_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = 
         # Compute value at unique critical point if it intersects
         # interval.
         p_root, root_intersects = let tmp = zero(p_a)
+            if Arblib.contains_zero(Arblib.ref(p, 2))
+                # Critical point could be anywhere or might not exist.
+                # Just evaluate on the whole interval
+                p_ab = Arb((a, b))
+                Arblib.evaluate!(p_ab, p, p_ab)
+
+                if abs_value
+                    Arblib.abs!(p_a, p_a)
+                    Arblib.abs!(p_b, p_b)
+                    Arblib.abs!(p_ab, p_ab)
+                end
+
+                Arblib.min!(tmp, p_a, p_b)
+                Arblib.min!(tmp, tmp, p_ab)
+                Arblib.max!(p_b, p_a, p_b) # Reuse p_b
+                Arblib.max!(p_b, p_b, p_ab)
+                return tmp, p_b
+            end
+
             # Compute root
             Arblib.div!(tmp, Arblib.ref(p, 1), Arblib.ref(p, 2))
             Arblib.neg!(tmp, tmp)
@@ -244,6 +263,23 @@ function _minimum_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = 
         # Compute value at unique critical point if it intersects
         # interval.
         p_root, root_intersects = let tmp = zero(p_a)
+            if Arblib.contains_zero(Arblib.ref(p, 2))
+                # Critical point could be anywhere or might not exist.
+                # Just evaluate on the whole interval
+                p_ab = Arb((a, b))
+                Arblib.evaluate!(p_ab, p, p_ab)
+
+                if abs_value
+                    Arblib.abs!(p_a, p_a)
+                    Arblib.abs!(p_b, p_b)
+                    Arblib.abs!(p_ab, p_ab)
+                end
+
+                Arblib.min!(tmp, p_a, p_b)
+                Arblib.min!(tmp, tmp, p_ab)
+                return tmp
+            end
+
             # Compute root
             Arblib.div!(tmp, Arblib.ref(p, 1), Arblib.ref(p, 2))
             Arblib.neg!(tmp, tmp)
@@ -343,6 +379,23 @@ function _maximum_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = 
         # Compute value at unique critical point if it intersects
         # interval.
         p_root, root_intersects = let tmp = zero(p_a)
+            if Arblib.contains_zero(Arblib.ref(p, 2))
+                # Critical point could be anywhere or might not exist.
+                # Just evaluate on the whole interval
+                p_ab = Arb((a, b))
+                Arblib.evaluate!(p_ab, p, p_ab)
+
+                if abs_value
+                    Arblib.abs!(p_a, p_a)
+                    Arblib.abs!(p_b, p_b)
+                    Arblib.abs!(p_ab, p_ab)
+                end
+
+                Arblib.max!(tmp, p_a, p_b)
+                Arblib.max!(tmp, tmp, p_ab)
+                return tmp
+            end
+
             # Compute root
             Arblib.div!(tmp, Arblib.ref(p, 1), Arblib.ref(p, 2))
             Arblib.neg!(tmp, tmp)
