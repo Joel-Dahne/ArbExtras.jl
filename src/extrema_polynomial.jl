@@ -28,6 +28,356 @@ function _check_signs(pa, pb, values = ())
 end
 
 """
+    _extrema_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = false)
+
+Internal method used by [`extrema_polynomial`](@ref) for polynomials
+of degree at most `2`.
+
+It assumes that `check_interval(a, b)` holds but does not check it.
+
+The method is split into separate cases depending on the degree of
+`p`. It is optimized for performance and sacrifices readability.
+
+**IMPROVE:** Add support for polynomials of degree `3`.
+"""
+function _extrema_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = false)
+    deg = Arblib.degree(p)
+
+    if deg <= 0
+        # Constant polynomial
+        res = p[0]
+
+        if abs_value
+            Arblib.abs!(res, res)
+        end
+
+        return res, copy(res)
+    elseif deg == 1
+        # Linear polynomial, extrema at endpoints
+        p_a, p_b = p(a), p(b)
+
+        if abs_value
+            min_is_zero = Arblib.sgn_nonzero(p_a) * Arblib.sgn_nonzero(p_b) < 0
+
+            Arblib.abs!(p_a, p_a)
+            Arblib.abs!(p_b, p_b)
+
+            if min_is_zero
+                Arblib.max!(p_b, p_a, p_b)
+                Arblib.zero!(p_a)
+                return p_a, p_b
+            else
+                if p_a <= p_b
+                    return p_a, p_b
+                elseif p_a >= p_b
+                    return p_b, p_a
+                else
+                    res_min = min(p_a, p_b)
+                    Arblib.max!(p_b, p_a, p_b) # Reuse p_b
+                    return res_min, p_b
+                end
+            end
+        else
+            sign = Arblib.sgn_nonzero(Arblib.ref(p, 1))
+
+            if sign > 0
+                # Increasing
+                return p_a, p_b
+            elseif sign < 0
+                # Decreasing
+                return p_b, p_a
+            else
+                res_min = min(p_a, p_b)
+                Arblib.max!(p_b, p_a, p_b) # Reuse p_b
+                return res_min, p_b
+            end
+        end
+    elseif deg == 2
+        # Compute value at endpoints
+        p_a, p_b = p(a), p(b)
+
+        # Compute value at unique critical point if it intersects
+        # interval.
+        p_root, root_intersects = let tmp = zero(p_a)
+            # Compute root
+            Arblib.div!(tmp, Arblib.ref(p, 1), Arblib.ref(p, 2))
+            Arblib.neg!(tmp, tmp)
+            Arblib.mul_2exp!(tmp, tmp, -1)
+
+            # Check if root intersects the interval and in that case
+            # evaluate, otherwise set to indeterminate.
+            x = Arb((a, b))
+            root_intersects = Arblib.overlaps(x, tmp)
+            if root_intersects
+                Arblib.intersection!(tmp, tmp, x)
+                Arblib.evaluate!(tmp, p, tmp)
+            end
+            tmp, root_intersects
+        end
+
+        if abs_value
+            # Check if polynomial has sign change
+            p_a_sign = Arblib.sgn_nonzero(p_a)
+            p_b_sign = Arblib.sgn_nonzero(p_b)
+            p_root_sign = root_intersects ? Arblib.sgn_nonzero(p_root) : zero(p_a_sign)
+            min_is_zero =
+                any(<(0), (p_a_sign, p_b_sign, p_root_sign)) &&
+                any(>(0), (p_a_sign, p_b_sign, p_root_sign))
+
+            Arblib.abs!(p_a, p_a)
+            Arblib.abs!(p_b, p_b)
+            Arblib.abs!(p_root, p_root)
+
+            if min_is_zero
+                Arblib.max!(p_b, p_a, p_b) # Reuse p_b
+                if root_intersects
+                    Arblib.max!(p_b, p_b, p_root)
+                end
+
+                Arblib.zero!(p_a) # Reuse p_a
+
+                return p_a, p_b
+            else
+                if root_intersects
+                    res_min = min(p_a, p_b)
+                    Arblib.min!(res_min, res_min, p_root)
+
+                    Arblib.max!(p_b, p_a, p_b) # Reuse p_b
+                    Arblib.max!(p_b, p_b, p_root)
+
+                    return res_min, p_b
+                else
+                    Arblib.min!(p_root, p_a, p_b) # Reuse p_root
+                    Arblib.max!(p_b, p_a, p_b)
+                    return p_root, p_b
+                end
+            end
+        else
+            if root_intersects
+                res_min = min(p_a, p_b)
+                Arblib.min!(res_min, res_min, p_root)
+
+                Arblib.max!(p_b, p_a, p_b) # Reuse p_b
+                Arblib.max!(p_b, p_b, p_root)
+
+                return res_min, p_b
+            else
+                Arblib.min!(p_root, p_a, p_b) # Reuse p_root
+                Arblib.max!(p_b, p_a, p_b)
+                return p_root, p_b
+            end
+        end
+    else
+        throw(ArgumentError("only supports polynomials of degree at most 2"))
+    end
+end
+
+
+"""
+    _minimum_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = false)
+
+Internal method used by [`minimum_polynomial`](@ref) for polynomials
+of degree at most `2`.
+
+Similar to [`_extrema_polynomial_low_degree`](@ref) but only computes
+minimum.
+"""
+function _minimum_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = false)
+    deg = Arblib.degree(p)
+
+    if deg <= 0
+        # Constant polynomial
+        res = p[0]
+
+        if abs_value
+            Arblib.abs!(res, res)
+        end
+
+        return res
+    elseif deg == 1
+        # Linear polynomial, extrema at endpoints
+        if abs_value
+            p_a, p_b = p(a), p(b)
+
+            if Arblib.sgn_nonzero(p_a) * Arblib.sgn_nonzero(p_b) < 0
+                return Arblib.zero!(p_a)
+            end
+
+            Arblib.abs!(p_a, p_a)
+            Arblib.abs!(p_b, p_b)
+
+            if p_a <= p_b
+                return p_a
+            elseif p_a >= p_b
+                return p_b
+            else
+                return Arblib.min!(p_a, p_a, p_b) # Reuse p_a
+            end
+        else
+            sign = Arblib.sgn_nonzero(Arblib.ref(p, 1))
+
+            if sign > 0
+                # Increasing
+                return p(a)
+            elseif sign < 0
+                # Decreasing
+                return p(b)
+            else
+                p_a, p_b = p(a), p(b)
+                return Arblib.min!(p_a, p_a, p_b) # Reuse p_a
+            end
+        end
+    elseif deg == 2
+        # Compute value at endpoints
+        p_a, p_b = p(a), p(b)
+
+        if abs_value
+            # If sign at endpoints differ minimum is zero
+            p_a_sign = Arblib.sgn_nonzero(p_a)
+            p_b_sign = Arblib.sgn_nonzero(p_b)
+
+            if p_a_sign * p_b_sign < 0
+                return Arblib.zero!(p_a)
+            end
+        end
+
+        # Compute value at unique critical point if it intersects
+        # interval.
+        p_root, root_intersects = let tmp = zero(p_a)
+            # Compute root
+            Arblib.div!(tmp, Arblib.ref(p, 1), Arblib.ref(p, 2))
+            Arblib.neg!(tmp, tmp)
+            Arblib.mul_2exp!(tmp, tmp, -1)
+
+            # Check if root intersects the interval and in that case
+            # evaluate, otherwise set to indeterminate.
+            x = Arb((a, b))
+            root_intersects = Arblib.overlaps(x, tmp)
+            if root_intersects
+                Arblib.intersection!(tmp, tmp, x)
+                Arblib.evaluate!(tmp, p, tmp)
+            end
+            tmp, root_intersects
+        end
+
+        if abs_value
+            # Check for sign change at critical point
+            if root_intersects
+                p_root_sign = Arblib.sgn_nonzero(p_root)
+                if p_a_sign * p_root_sign < 0 || p_b_sign * p_root_sign < 0
+                    return Arblib.zero!(p_a)
+                end
+            end
+
+            Arblib.abs!(p_a, p_a)
+            Arblib.abs!(p_b, p_b)
+            Arblib.abs!(p_root, p_root)
+        end
+
+        Arblib.min!(p_a, p_a, p_b) # Reuse p_a
+
+        if root_intersects
+            Arblib.min!(p_a, p_a, p_root)
+        end
+
+        return p_a
+    else
+        throw(ArgumentError("only supports polynomials of degree at most 2"))
+    end
+end
+
+"""
+    _maximum_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = false)
+
+Internal method used by [`minimum_polynomial`](@ref) for polynomials
+of degree at most `2`.
+
+Similar to [`_extrema_polynomial_low_degree`](@ref) but only computes
+minimum.
+"""
+function _maximum_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = false)
+    deg = Arblib.degree(p)
+
+    if deg <= 0
+        # Constant polynomial
+        res = p[0]
+
+        if abs_value
+            Arblib.abs!(res, res)
+        end
+
+        return res
+    elseif deg == 1
+        # Linear polynomial, extrema at endpoints
+        if abs_value
+            p_a, p_b = p(a), p(b)
+
+            Arblib.abs!(p_a, p_a)
+            Arblib.abs!(p_b, p_b)
+
+            if p_a <= p_b
+                return p_b
+            elseif p_a >= p_b
+                return p_a
+            else
+                return Arblib.max!(p_a, p_a, p_b) # Reuse p_a
+            end
+        else
+            sign = Arblib.sgn_nonzero(Arblib.ref(p, 1))
+
+            if sign > 0
+                # Increasing
+                return p(b)
+            elseif sign < 0
+                # Decreasing
+                return p(a)
+            else
+                p_a, p_b = p(a), p(b)
+                return Arblib.max!(p_a, p_a, p_b) # Reuse p_a
+            end
+        end
+    elseif deg == 2
+        # Compute value at endpoints
+        p_a, p_b = p(a), p(b)
+
+        # Compute value at unique critical point if it intersects
+        # interval.
+        p_root, root_intersects = let tmp = zero(p_a)
+            # Compute root
+            Arblib.div!(tmp, Arblib.ref(p, 1), Arblib.ref(p, 2))
+            Arblib.neg!(tmp, tmp)
+            Arblib.mul_2exp!(tmp, tmp, -1)
+
+            # Check if root intersects the interval and in that case
+            # evaluate, otherwise set to indeterminate.
+            x = Arb((a, b))
+            root_intersects = Arblib.overlaps(x, tmp)
+            if root_intersects
+                Arblib.intersection!(tmp, tmp, x)
+                Arblib.evaluate!(tmp, p, tmp)
+            end
+            tmp, root_intersects
+        end
+
+        if abs_value
+            Arblib.abs!(p_a, p_a)
+            Arblib.abs!(p_b, p_b)
+            Arblib.abs!(p_root, p_root)
+        end
+
+        Arblib.max!(p_a, p_a, p_b) # Reuse p_a
+
+        if root_intersects
+            Arblib.max!(p_a, p_a, p_root)
+        end
+
+        return p_a
+    else
+        throw(ArgumentError("only supports polynomials of degree at most 2"))
+    end
+end
+
+"""
     extrema_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbose = false)
 
 Compute an enclosure of both the minimum and maximum of the polynomial
