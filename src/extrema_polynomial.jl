@@ -467,12 +467,15 @@ TODO: Allow passing arguments to `isolate_roots`?
 function extrema_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbose = false)
     check_interval(a, b)
 
-    maybe_abs = abs_value ? abs : identity
-
     if a == b
-        pa = maybe_abs(p(a))
-        return pa, pa
+        res = p(a)
+        abs_value && Arblib.abs!(res, res)
+        return res, copy(res)
     end
+
+    Arblib.degree(p) <= 2 && return _extrema_polynomial_low_degree(p, a, b; abs_value)
+
+    maybe_abs = abs_value ? abs : identity
 
     # Compute values at endpoints
     pa, pb = p(a), p(b)
@@ -514,17 +517,6 @@ function extrema_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbo
             Arb(NaN, prec = precision(min_endpoints)),
             Arb(NaN, prec = precision(min_endpoints)),
         )
-
-    # Short circuit on constant or linear polynomial where extrema is
-    # attained at endpoints (or possibly is zero if computing absolute
-    # value)
-    if Arblib.degree(p) <= 1
-        if min_done
-            return min_value, max_endpoints
-        else
-            return min_endpoints, max_endpoints
-        end
-    end
 
     # Short circuit in case p cannot be evaluated to any meaningful
     # precision.
@@ -625,11 +617,15 @@ algorithm is also the same except that it only looks for the minimum.
 function minimum_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbose = false)
     check_interval(a, b)
 
-    maybe_abs = abs_value ? abs : identity
-
     if a == b
-        return maybe_abs(p(a))
+        res = p(a)
+        abs_value && Arblib.abs!(res, res)
+        return res
     end
+
+    Arblib.degree(p) <= 2 && return _minimum_polynomial_low_degree(p, a, b; abs_value)
+
+    maybe_abs = abs_value ? abs : identity
 
     # Compute values at endpoints
     pa, pb = p(a), p(b)
@@ -664,10 +660,6 @@ function minimum_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbo
 
     # Short circuit non-finite values and return NaN
     !isfinite(m_endpoints) && return Arb(NaN, prec = precision(m_endpoints))
-
-    # Short circuit on constant or linear polynomial where minimum is
-    # attained at endpoints
-    Arblib.degree(p) <= 1 && return m_endpoints
 
     # Short circuit in case p cannot be evaluated to any meaningful
     # precision.
@@ -748,11 +740,15 @@ algorithm is also the same except that it only looks for the maximum.
 function maximum_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbose = false)
     check_interval(a, b)
 
-    maybe_abs = abs_value ? abs : identity
-
     if a == b
-        return maybe_abs(p(a))
+        res = p(a)
+        abs_value && Arblib.abs!(res, res)
+        return res
     end
+
+    Arblib.degree(p) <= 2 && return _maximum_polynomial_low_degree(p, a, b; abs_value)
+
+    maybe_abs = abs_value ? abs : identity
 
     # Compute the maximum on the endpoints
     m_endpoints = max(maybe_abs(p(a)), maybe_abs(p(b)))
@@ -764,10 +760,6 @@ function maximum_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbo
 
     # Short circuit non-finite values and return NaN
     !isfinite(m_endpoints) && return Arb(NaN, prec = precision(m_endpoints))
-
-    # Short circuit on constant or linear polynomial where maximum is
-    # attained at endpoints
-    Arblib.degree(p) <= 1 && return m_endpoints
 
     # Short circuit in case p cannot be evaluated to any meaningful
     # precision.

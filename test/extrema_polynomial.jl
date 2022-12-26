@@ -526,19 +526,19 @@ end
 
     # Wide polynomials
     @test_logs (:info, "could not evaluate p to any meaningful precision") match_mode = :any ArbExtras.extrema_polynomial(
-        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1)), Mag(100))),
+        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1), Arb(1)), Mag(100))),
         Arf(-1),
         Arf(1),
         verbose = true,
     )
     @test_logs (:info, "could not evaluate p to any meaningful precision") match_mode = :any ArbExtras.minimum_polynomial(
-        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1)), Mag(100))),
+        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1), Arb(1)), Mag(100))),
         Arf(-1),
         Arf(1),
         verbose = true,
     )
     @test_logs (:info, "could not evaluate p to any meaningful precision") match_mode = :any ArbExtras.maximum_polynomial(
-        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1)), Mag(100))),
+        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1), Arb(1)), Mag(100))),
         Arf(-1),
         Arf(1),
         verbose = true,
