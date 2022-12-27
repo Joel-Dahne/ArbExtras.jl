@@ -101,35 +101,35 @@ function _extrema_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = 
         p_root, root_intersects = let tmp = zero(p_a)
             if Arblib.contains_zero(Arblib.ref(p, 2))
                 # Critical point could be anywhere or might not exist.
-                # Just evaluate on the whole interval
-                p_ab = Arb((a, b))
-                Arblib.evaluate!(p_ab, p, p_ab)
+                # Compute derivative directly and if non-zero then set
+                # root_intersects to false. If it contains zero then
+                # evaluate on whole interval.
+                x = Arb((a, b))
 
-                if abs_value
-                    Arblib.abs!(p_a, p_a)
-                    Arblib.abs!(p_b, p_b)
-                    Arblib.abs!(p_ab, p_ab)
+                # Compute derivative manually
+                Arblib.mul_2exp!(tmp, Arblib.ref(p, 2), 1)
+                Arblib.fma!(tmp, tmp, x, Arblib.ref(p, 1))
+
+                root_intersects = Arblib.contains_zero(tmp)
+
+                if root_intersects
+                    # Just evaluate on the whole interval
+                    Arblib.evaluate!(tmp, p, x)
                 end
+            else
+                # Compute root
+                Arblib.div!(tmp, Arblib.ref(p, 1), Arblib.ref(p, 2))
+                Arblib.neg!(tmp, tmp)
+                Arblib.mul_2exp!(tmp, tmp, -1)
 
-                Arblib.min!(tmp, p_a, p_b)
-                Arblib.min!(tmp, tmp, p_ab)
-                Arblib.max!(p_b, p_a, p_b) # Reuse p_b
-                Arblib.max!(p_b, p_b, p_ab)
-                return tmp, p_b
-            end
-
-            # Compute root
-            Arblib.div!(tmp, Arblib.ref(p, 1), Arblib.ref(p, 2))
-            Arblib.neg!(tmp, tmp)
-            Arblib.mul_2exp!(tmp, tmp, -1)
-
-            # Check if root intersects the interval and in that case
-            # evaluate, otherwise set to indeterminate.
-            x = Arb((a, b))
-            root_intersects = Arblib.overlaps(x, tmp)
-            if root_intersects
-                Arblib.intersection!(tmp, tmp, x)
-                Arblib.evaluate!(tmp, p, tmp)
+                # Check if root intersects the interval and in that
+                # case evaluate.
+                x = Arb((a, b))
+                root_intersects = Arblib.overlaps(x, tmp)
+                if root_intersects
+                    Arblib.intersection!(tmp, tmp, x)
+                    Arblib.evaluate!(tmp, p, tmp)
+                end
             end
             tmp, root_intersects
         end
@@ -265,33 +265,35 @@ function _minimum_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = 
         p_root, root_intersects = let tmp = zero(p_a)
             if Arblib.contains_zero(Arblib.ref(p, 2))
                 # Critical point could be anywhere or might not exist.
-                # Just evaluate on the whole interval
-                p_ab = Arb((a, b))
-                Arblib.evaluate!(p_ab, p, p_ab)
+                # Compute derivative directly and if non-zero then set
+                # root_intersects to false. If it contains zero then
+                # evaluate on whole interval.
+                x = Arb((a, b))
 
-                if abs_value
-                    Arblib.abs!(p_a, p_a)
-                    Arblib.abs!(p_b, p_b)
-                    Arblib.abs!(p_ab, p_ab)
+                # Compute derivative manually
+                Arblib.mul_2exp!(tmp, Arblib.ref(p, 2), 1)
+                Arblib.fma!(tmp, tmp, x, Arblib.ref(p, 1))
+
+                root_intersects = Arblib.contains_zero(tmp)
+
+                if root_intersects
+                    # Just evaluate on the whole interval
+                    Arblib.evaluate!(tmp, p, x)
                 end
+            else
+                # Compute root
+                Arblib.div!(tmp, Arblib.ref(p, 1), Arblib.ref(p, 2))
+                Arblib.neg!(tmp, tmp)
+                Arblib.mul_2exp!(tmp, tmp, -1)
 
-                Arblib.min!(tmp, p_a, p_b)
-                Arblib.min!(tmp, tmp, p_ab)
-                return tmp
-            end
-
-            # Compute root
-            Arblib.div!(tmp, Arblib.ref(p, 1), Arblib.ref(p, 2))
-            Arblib.neg!(tmp, tmp)
-            Arblib.mul_2exp!(tmp, tmp, -1)
-
-            # Check if root intersects the interval and in that case
-            # evaluate, otherwise set to indeterminate.
-            x = Arb((a, b))
-            root_intersects = Arblib.overlaps(x, tmp)
-            if root_intersects
-                Arblib.intersection!(tmp, tmp, x)
-                Arblib.evaluate!(tmp, p, tmp)
+                # Check if root intersects the interval and in that
+                # case evaluate.
+                x = Arb((a, b))
+                root_intersects = Arblib.overlaps(x, tmp)
+                if root_intersects
+                    Arblib.intersection!(tmp, tmp, x)
+                    Arblib.evaluate!(tmp, p, tmp)
+                end
             end
             tmp, root_intersects
         end
@@ -381,33 +383,35 @@ function _maximum_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = 
         p_root, root_intersects = let tmp = zero(p_a)
             if Arblib.contains_zero(Arblib.ref(p, 2))
                 # Critical point could be anywhere or might not exist.
-                # Just evaluate on the whole interval
-                p_ab = Arb((a, b))
-                Arblib.evaluate!(p_ab, p, p_ab)
+                # Compute derivative directly and if non-zero then set
+                # root_intersects to false. If it contains zero then
+                # evaluate on whole interval.
+                x = Arb((a, b))
 
-                if abs_value
-                    Arblib.abs!(p_a, p_a)
-                    Arblib.abs!(p_b, p_b)
-                    Arblib.abs!(p_ab, p_ab)
+                # Compute derivative manually
+                Arblib.mul_2exp!(tmp, Arblib.ref(p, 2), 1)
+                Arblib.fma!(tmp, tmp, x, Arblib.ref(p, 1))
+
+                root_intersects = Arblib.contains_zero(tmp)
+
+                if root_intersects
+                    # Just evaluate on the whole interval
+                    Arblib.evaluate!(tmp, p, x)
                 end
+            else
+                # Compute root
+                Arblib.div!(tmp, Arblib.ref(p, 1), Arblib.ref(p, 2))
+                Arblib.neg!(tmp, tmp)
+                Arblib.mul_2exp!(tmp, tmp, -1)
 
-                Arblib.max!(tmp, p_a, p_b)
-                Arblib.max!(tmp, tmp, p_ab)
-                return tmp
-            end
-
-            # Compute root
-            Arblib.div!(tmp, Arblib.ref(p, 1), Arblib.ref(p, 2))
-            Arblib.neg!(tmp, tmp)
-            Arblib.mul_2exp!(tmp, tmp, -1)
-
-            # Check if root intersects the interval and in that case
-            # evaluate, otherwise set to indeterminate.
-            x = Arb((a, b))
-            root_intersects = Arblib.overlaps(x, tmp)
-            if root_intersects
-                Arblib.intersection!(tmp, tmp, x)
-                Arblib.evaluate!(tmp, p, tmp)
+                # Check if root intersects the interval and in that
+                # case evaluate.
+                x = Arb((a, b))
+                root_intersects = Arblib.overlaps(x, tmp)
+                if root_intersects
+                    Arblib.intersection!(tmp, tmp, x)
+                    Arblib.evaluate!(tmp, p, tmp)
+                end
             end
             tmp, root_intersects
         end
