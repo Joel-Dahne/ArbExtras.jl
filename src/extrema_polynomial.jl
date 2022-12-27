@@ -477,7 +477,12 @@ function extrema_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbo
         return res, copy(res)
     end
 
-    Arblib.degree(p) <= 2 && return _extrema_polynomial_low_degree(p, a, b; abs_value)
+    if Arblib.degree(p) <= 2
+        res = _extrema_polynomial_low_degree(p, a, b; abs_value)
+        abs_value && Arblib.nonnegative_part!(res[1], res[1])
+        abs_value && Arblib.nonnegative_part!(res[2], res[2])
+        return res
+    end
 
     maybe_abs = abs_value ? abs : identity
 
@@ -627,7 +632,11 @@ function minimum_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbo
         return res
     end
 
-    Arblib.degree(p) <= 2 && return _minimum_polynomial_low_degree(p, a, b; abs_value)
+    if Arblib.degree(p) <= 2
+        res = _minimum_polynomial_low_degree(p, a, b; abs_value)
+        abs_value && Arblib.nonnegative_part!(res, res)
+        return res
+    end
 
     maybe_abs = abs_value ? abs : identity
 
@@ -750,7 +759,11 @@ function maximum_polynomial(p::ArbPoly, a::Arf, b::Arf; abs_value = false, verbo
         return res
     end
 
-    Arblib.degree(p) <= 2 && return _maximum_polynomial_low_degree(p, a, b; abs_value)
+    if Arblib.degree(p) <= 2
+        res = _maximum_polynomial_low_degree(p, a, b; abs_value)
+        abs_value && Arblib.nonnegative_part!(res, res)
+        return res
+    end
 
     maybe_abs = abs_value ? abs : identity
 
