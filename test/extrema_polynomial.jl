@@ -1,3 +1,450 @@
+@testset "_extrema_polynomial_low_degree" begin
+    @testset "Degree 0" begin
+        for p0 in (Arb(0), Arb(-1), Arb(1), Arb((-1, 1)))
+            @test isequal(
+                ArbExtras._extrema_polynomial_low_degree(ArbPoly(p0), Arf(-1), Arf(1)),
+                (p0, p0),
+            )
+
+            @test isequal(
+                ArbExtras._minimum_polynomial_low_degree(ArbPoly(p0), Arf(-1), Arf(1)),
+                p0,
+            )
+
+            @test isequal(
+                ArbExtras._maximum_polynomial_low_degree(ArbPoly(p0), Arf(-1), Arf(1)),
+                p0,
+            )
+        end
+    end
+
+    @testset "Degree 1" begin
+        p = ArbPoly((1, 3))
+        # abs_value = false
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1)) == (-2, 4)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(0), Arf(1)) == (1, 4)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-2), Arf(-1)) == (-5, -2)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(1)) == (-4, 2)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(0), Arf(1)) == (-4, -1)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(-2), Arf(-1)) == (2, 5)
+
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(1)) == -2
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(0), Arf(1)) == 1
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-2), Arf(-1)) == -5
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(1)) == -4
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(0), Arf(1)) == -4
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(-2), Arf(-1)) == 2
+
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(1)) == 4
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(0), Arf(1)) == 4
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-2), Arf(-1)) == -2
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(1)) == 2
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(0), Arf(1)) == -1
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(-2), Arf(-1)) == 5
+
+        # abs_value = true
+        abs_value = true
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value) ==
+              (0, 4)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(0), Arf(1); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(0), Arf(1); abs_value) ==
+              (1, 4)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-2), Arf(-1); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(-2), Arf(-1); abs_value) ==
+              (2, 5)
+
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value) ==
+              0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(0), Arf(1); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(0), Arf(1); abs_value) ==
+              1
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-2), Arf(-1); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(-2), Arf(-1); abs_value) ==
+              2
+
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value) ==
+              4
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(0), Arf(1); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(0), Arf(1); abs_value) ==
+              4
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-2), Arf(-1); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(-2), Arf(-1); abs_value) ==
+              5
+
+        p = ArbPoly((1, Arb((-1, 2))))
+        # abs_value = false
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1)),
+                (Arb((-1, 2)), Arb((0, 3))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(1)),
+            Arb((-1, 2)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(1)),
+            Arb((0, 3)),
+        )
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(1)),
+                (Arb((-3, 0)), Arb((-2, 1))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(1)),
+            Arb((-3, 0)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(1)),
+            Arb((-2, 1)),
+        )
+
+        # abs_value = true
+        abs_value = true
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value),
+                (Arb((0, 2)), Arb((0, 3))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value),
+            Arb((0, 2)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value),
+            Arb((0, 3)),
+        )
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value),
+                (Arb((0, 2)), Arb((0, 3))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value),
+            Arb((0, 2)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value),
+            Arb((0, 3)),
+        )
+    end
+
+    # Degree 2
+    @testset "Degree 2" begin
+        p = ArbPoly((-3, -1, 2))
+        # abs_value = false
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(-2)) == (7, 18)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(-1)) == (0, 18)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(0)) == (-3, 18)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(1)) == (-25 // 8, 18)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(2)) == (-25 // 8, 18)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(3)) == (-25 // 8, 18)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(0)) == (-3, 0)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1)) == (-25 // 8, 0)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(2)) == (-25 // 8, 3)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(3)) == (-25 // 8, 12)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(0), Arf(1)) == (-25 // 8, -2)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(0), Arf(2)) == (-25 // 8, 3)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(1), Arf(2)) == (-2, 3)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(1), Arf(3)) == (-2, 12)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(-3), Arf(-2)) == (-18, -7)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(-3), Arf(-1)) == (-18, -0)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(-3), Arf(0)) == (-18, 3)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(-3), Arf(1)) ==
+              (-18, 25 // 8)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(-3), Arf(2)) ==
+              (-18, 25 // 8)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(-3), Arf(3)) ==
+              (-18, 25 // 8)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(0)) == (-0, 3)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(1)) == (-0, 25 // 8)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(2)) == (-3, 25 // 8)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(3)) ==
+              (-12, 25 // 8)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(0), Arf(1)) == (2, 25 // 8)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(0), Arf(2)) == (-3, 25 // 8)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(1), Arf(2)) == (-3, 2)
+        @test ArbExtras._extrema_polynomial_low_degree(-p, Arf(1), Arf(3)) == (-12, 2)
+
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-3), Arf(-2)) == 7
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-3), Arf(-1)) == 0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-3), Arf(0)) == -3
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-3), Arf(1)) == -25 // 8
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-3), Arf(2)) == -25 // 8
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-3), Arf(3)) == -25 // 8
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(0)) == -3
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(1)) == -25 // 8
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(2)) == -25 // 8
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(3)) == -25 // 8
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(0), Arf(1)) == -25 // 8
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(0), Arf(2)) == -25 // 8
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(1), Arf(2)) == -2
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(1), Arf(3)) == -2
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(-3), Arf(-2)) == -18
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(-3), Arf(-1)) == -18
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(-3), Arf(0)) == -18
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(-3), Arf(1)) == -18
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(-3), Arf(2)) == -18
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(-3), Arf(3)) == -18
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(0)) == -0
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(1)) == -0
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(2)) == -3
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(3)) == -12
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(0), Arf(1)) == 2
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(0), Arf(2)) == -3
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(1), Arf(2)) == -3
+        @test ArbExtras._minimum_polynomial_low_degree(-p, Arf(1), Arf(3)) == -12
+
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-3), Arf(-2)) == 18
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-3), Arf(-1)) == 18
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-3), Arf(0)) == 18
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-3), Arf(1)) == 18
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-3), Arf(2)) == 18
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-3), Arf(3)) == 18
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(0)) == 0
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(1)) == 0
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(2)) == 3
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(3)) == 12
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(0), Arf(1)) == -2
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(0), Arf(2)) == 3
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(1), Arf(2)) == 3
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(1), Arf(3)) == 12
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(-3), Arf(-2)) == -7
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(-3), Arf(-1)) == -0
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(-3), Arf(0)) == 3
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(-3), Arf(1)) == 25 // 8
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(-3), Arf(2)) == 25 // 8
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(-3), Arf(3)) == 25 // 8
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(0)) == 3
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(1)) == 25 // 8
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(2)) == 25 // 8
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(3)) == 25 // 8
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(0), Arf(1)) == 25 // 8
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(0), Arf(2)) == 25 // 8
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(1), Arf(2)) == 2
+        @test ArbExtras._maximum_polynomial_low_degree(-p, Arf(1), Arf(3)) == 2
+
+        # abs_value = true
+        abs_value = true
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(-2); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(-3), Arf(-2); abs_value) ==
+              (7, 18)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(-1); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(-3), Arf(-1); abs_value) ==
+              (0, 18)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(0); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(-3), Arf(0); abs_value) ==
+              (0, 18)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(1); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(-3), Arf(1); abs_value) ==
+              (0, 18)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(2); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(-3), Arf(2); abs_value) ==
+              (0, 18)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(3); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(-3), Arf(3); abs_value) ==
+              (0, 18)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(0); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(0); abs_value) ==
+              (0, 3)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value) ==
+              (0, 25 // 8)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(2); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(2); abs_value) ==
+              (0, 25 // 8)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(3); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(3); abs_value) ==
+              (0, 12)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(0), Arf(1); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(0), Arf(1); abs_value) ==
+              (2, 25 // 8)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(0), Arf(2); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(0), Arf(2); abs_value) ==
+              (0, 25 // 8)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(1), Arf(2); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(1), Arf(2); abs_value) ==
+              (0, 3)
+        @test ArbExtras._extrema_polynomial_low_degree(p, Arf(1), Arf(3); abs_value) ==
+              ArbExtras._extrema_polynomial_low_degree(-p, Arf(1), Arf(3); abs_value) ==
+              (0, 12)
+
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-3), Arf(-2); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(-3), Arf(-2); abs_value) ==
+              7
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-3), Arf(-1); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(-3), Arf(-1); abs_value) ==
+              0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-3), Arf(0); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(-3), Arf(0); abs_value) ==
+              0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-3), Arf(1); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(-3), Arf(1); abs_value) ==
+              0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-3), Arf(2); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(-3), Arf(2); abs_value) ==
+              0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-3), Arf(3); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(-3), Arf(3); abs_value) ==
+              0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(0); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(0); abs_value) ==
+              0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value) ==
+              0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(2); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(2); abs_value) ==
+              0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(3); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(3); abs_value) ==
+              0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(0), Arf(1); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(0), Arf(1); abs_value) ==
+              2
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(0), Arf(2); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(0), Arf(2); abs_value) ==
+              0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(1), Arf(2); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(1), Arf(2); abs_value) ==
+              0
+        @test ArbExtras._minimum_polynomial_low_degree(p, Arf(1), Arf(3); abs_value) ==
+              ArbExtras._minimum_polynomial_low_degree(-p, Arf(1), Arf(3); abs_value) ==
+              0
+
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-3), Arf(-2); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(-3), Arf(-2); abs_value) ==
+              18
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-3), Arf(-1); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(-3), Arf(-1); abs_value) ==
+              18
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-3), Arf(0); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(-3), Arf(0); abs_value) ==
+              18
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-3), Arf(1); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(-3), Arf(1); abs_value) ==
+              18
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-3), Arf(2); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(-3), Arf(2); abs_value) ==
+              18
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-3), Arf(3); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(-3), Arf(3); abs_value) ==
+              18
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(0); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(0); abs_value) ==
+              3
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value) ==
+              25 // 8
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(2); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(2); abs_value) ==
+              25 // 8
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(3); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(3); abs_value) ==
+              12
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(0), Arf(1); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(0), Arf(1); abs_value) ==
+              25 // 8
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(0), Arf(2); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(0), Arf(2); abs_value) ==
+              25 // 8
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(1), Arf(2); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(1), Arf(2); abs_value) ==
+              3
+        @test ArbExtras._maximum_polynomial_low_degree(p, Arf(1), Arf(3); abs_value) ==
+              ArbExtras._maximum_polynomial_low_degree(-p, Arf(1), Arf(3); abs_value) ==
+              12
+
+
+        p = ArbPoly((-3, -1, Arb((-1, 2))))
+        # abs_value = false
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1)),
+                (Arb((-5, -2)), Arb((-3, 0))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(1)),
+            Arb((-5, -2)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(1)),
+            Arb((-3, 0)),
+        )
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(1)),
+                (Arb((0, 3)), Arb((2, 5))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(1)),
+            Arb((0, 3)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(1)),
+            Arb((2, 5)),
+        )
+
+        # abs_value = true
+        abs_value = true
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value),
+                (Arb((0, 3)), Arb((2, 5))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value),
+            Arb((0, 3)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(p, Arf(-1), Arf(1); abs_value),
+            Arb((2, 5)),
+        )
+        @test all(
+            contains.(
+                ArbExtras._extrema_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value),
+                (Arb((0, 3)), Arb((2, 5))),
+            ),
+        )
+        @test contains(
+            ArbExtras._minimum_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value),
+            Arb((0, 3)),
+        )
+        @test contains(
+            ArbExtras._maximum_polynomial_low_degree(-p, Arf(-1), Arf(1); abs_value),
+            Arb((2, 5)),
+        )
+    end
+
+    # Higher order degree
+    @test_throws ArgumentError ArbExtras._extrema_polynomial_low_degree(
+        ArbPoly((0, 0, 0, 1)),
+        Arf(-1),
+        Arf(1),
+    )
+    @test_throws ArgumentError ArbExtras._minimum_polynomial_low_degree(
+        ArbPoly((0, 0, 0, 1)),
+        Arf(-1),
+        Arf(1),
+    )
+    @test_throws ArgumentError ArbExtras._maximum_polynomial_low_degree(
+        ArbPoly((0, 0, 0, 1)),
+        Arf(-1),
+        Arf(1),
+    )
+end
+
 @testset "extrema_polynomial" begin
     # Define a number of problems for which we expect the method to
     # work without issues. The problems are defined as (p, (a, b), x,
@@ -66,7 +513,6 @@
         (ArbPoly([5, -1]), (Arf(0), Arf(1)), Arb(1), Arb(0)),
     ]
 
-    i = 0
     for (p, (a, b), x, y) in problems
         min, max = p(x), p(y)
         min1, max1 = ArbExtras.extrema_polynomial(p, a, b)
@@ -90,19 +536,19 @@
 
     # Wide polynomials
     @test_logs (:info, "could not evaluate p to any meaningful precision") match_mode = :any ArbExtras.extrema_polynomial(
-        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1)), Mag(100))),
+        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1), Arb(1)), Mag(100))),
         Arf(-1),
         Arf(1),
         verbose = true,
     )
     @test_logs (:info, "could not evaluate p to any meaningful precision") match_mode = :any ArbExtras.minimum_polynomial(
-        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1)), Mag(100))),
+        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1), Arb(1)), Mag(100))),
         Arf(-1),
         Arf(1),
         verbose = true,
     )
     @test_logs (:info, "could not evaluate p to any meaningful precision") match_mode = :any ArbExtras.maximum_polynomial(
-        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1)), Mag(100))),
+        ArbPoly(add_error.((Arb(1), Arb(1), Arb(1), Arb(1)), Mag(100))),
         Arf(-1),
         Arf(1),
         verbose = true,
@@ -168,10 +614,9 @@
 
             # Zero at endpoint
             (ArbPoly([0, 1, 1]), (Arf(0), Arf(2)), Arb(0), Arb(2)),
+            (ArbPoly([0, 1, 1, 1]), (Arf(0), Arf(2)), Arb(0), Arb(2)),
         ]
 
-
-        i = 0
         for (p, (a, b), x, y) in problems
             min, max = abs(p(x)), abs(p(y))
             # Run the problems with both p and -p, they should give
