@@ -1,24 +1,25 @@
 @testset "_extrema_polynomial_low_degree" begin
-    # Degree 0
-    for p0 in (Arb(0), Arb(-1), Arb(1), Arb((-1, 1)))
-        @test isequal(
-            ArbExtras._extrema_polynomial_low_degree(ArbPoly(p0), Arf(-1), Arf(1)),
-            (p0, p0),
-        )
+    @testset "Degree 0" begin
+        for p0 in (Arb(0), Arb(-1), Arb(1), Arb((-1, 1)))
+            @test isequal(
+                ArbExtras._extrema_polynomial_low_degree(ArbPoly(p0), Arf(-1), Arf(1)),
+                (p0, p0),
+            )
 
-        @test isequal(
-            ArbExtras._minimum_polynomial_low_degree(ArbPoly(p0), Arf(-1), Arf(1)),
-            p0,
-        )
+            @test isequal(
+                ArbExtras._minimum_polynomial_low_degree(ArbPoly(p0), Arf(-1), Arf(1)),
+                p0,
+            )
 
-        @test isequal(
-            ArbExtras._maximum_polynomial_low_degree(ArbPoly(p0), Arf(-1), Arf(1)),
-            p0,
-        )
+            @test isequal(
+                ArbExtras._maximum_polynomial_low_degree(ArbPoly(p0), Arf(-1), Arf(1)),
+                p0,
+            )
+        end
     end
 
-    # Degree 1
-    let p = ArbPoly((1, 3))
+    @testset "Degree 1" begin
+        p = ArbPoly((1, 3))
         # abs_value = false
         @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-1), Arf(1)) == (-2, 4)
         @test ArbExtras._extrema_polynomial_low_degree(p, Arf(0), Arf(1)) == (1, 4)
@@ -72,9 +73,8 @@
         @test ArbExtras._maximum_polynomial_low_degree(p, Arf(-2), Arf(-1); abs_value) ==
               ArbExtras._maximum_polynomial_low_degree(-p, Arf(-2), Arf(-1); abs_value) ==
               5
-    end
 
-    let p = ArbPoly((1, Arb((-1, 2))))
+        p = ArbPoly((1, Arb((-1, 2))))
         # abs_value = false
         @test all(
             contains.(
@@ -138,7 +138,8 @@
     end
 
     # Degree 2
-    let p = ArbPoly((-3, -1, 2))
+    @testset "Degree 2" begin
+        p = ArbPoly((-3, -1, 2))
         # abs_value = false
         @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(-2)) == (7, 18)
         @test ArbExtras._extrema_polynomial_low_degree(p, Arf(-3), Arf(-1)) == (0, 18)
@@ -361,9 +362,9 @@
         @test ArbExtras._maximum_polynomial_low_degree(p, Arf(1), Arf(3); abs_value) ==
               ArbExtras._maximum_polynomial_low_degree(-p, Arf(1), Arf(3); abs_value) ==
               12
-    end
 
-    let p = ArbPoly((-3, -1, Arb((-1, 2))))
+
+        p = ArbPoly((-3, -1, Arb((-1, 2))))
         # abs_value = false
         @test all(
             contains.(
@@ -428,6 +429,16 @@
 
     # Higher order degree
     @test_throws ArgumentError ArbExtras._extrema_polynomial_low_degree(
+        ArbPoly((0, 0, 0, 1)),
+        Arf(-1),
+        Arf(1),
+    )
+    @test_throws ArgumentError ArbExtras._minimum_polynomial_low_degree(
+        ArbPoly((0, 0, 0, 1)),
+        Arf(-1),
+        Arf(1),
+    )
+    @test_throws ArgumentError ArbExtras._maximum_polynomial_low_degree(
         ArbPoly((0, 0, 0, 1)),
         Arf(-1),
         Arf(1),
@@ -502,7 +513,6 @@ end
         (ArbPoly([5, -1]), (Arf(0), Arf(1)), Arb(1), Arb(0)),
     ]
 
-    i = 0
     for (p, (a, b), x, y) in problems
         min, max = p(x), p(y)
         min1, max1 = ArbExtras.extrema_polynomial(p, a, b)
@@ -604,10 +614,9 @@ end
 
             # Zero at endpoint
             (ArbPoly([0, 1, 1]), (Arf(0), Arf(2)), Arb(0), Arb(2)),
+            (ArbPoly([0, 1, 1, 1]), (Arf(0), Arf(2)), Arb(0), Arb(2)),
         ]
 
-
-        i = 0
         for (p, (a, b), x, y) in problems
             min, max = abs(p(x)), abs(p(y))
             # Run the problems with both p and -p, they should give
