@@ -144,10 +144,9 @@ function extrema_enclosure(
 )
     check_interval(a, b)
 
-    maybe_abs = abs_value ? abs : identity
-
     if a == b
-        res = maybe_abs(f(Arb(a)))
+        res = f(Arb(a))
+        abs_value && Arblib.abs!(res, res)
         abs_value && Arblib.nonnegative_part!(res, res)
         return res, res
     end
@@ -180,11 +179,15 @@ function extrema_enclosure(
         if degree < 0
             if threaded
                 Threads.@threads for i in eachindex(intervals)
-                    values_min[i] = values_max[i] = maybe_abs(f(Arb(intervals[i])))
+                    v = f(Arb(intervals[i]))
+                    abs_value && Arblib.abs!(v, v)
+                    values_min[i] = values_max[i] = v
                 end
             else
                 for i in eachindex(intervals)
-                    values_min[i] = values_max[i] = maybe_abs(f(Arb(intervals[i])))
+                    v = f(Arb(intervals[i]))
+                    abs_value && Arblib.abs!(v, v)
+                    values_min[i] = values_max[i] = v
                 end
             end
         else
@@ -332,10 +335,9 @@ function minimum_enclosure(
 )
     check_interval(a, b)
 
-    maybe_abs = abs_value ? abs : identity
-
     if a == b
-        res = maybe_abs(f(Arb(a)))
+        res = f(Arb(a))
+        abs_value && Arblib.abs!(res, res)
         abs_value && Arblib.nonnegative_part!(res, res)
         return res
     end
@@ -365,11 +367,15 @@ function minimum_enclosure(
         if degree < 0
             if threaded
                 Threads.@threads for i in eachindex(intervals)
-                    values[i] = maybe_abs(f(Arb(intervals[i])))
+                    v = f(Arb(intervals[i]))
+                    abs_value && Arblib.abs!(v, v)
+                    values[i] = v
                 end
             else
                 for i in eachindex(intervals)
-                    values[i] = maybe_abs(f(Arb(intervals[i])))
+                    v = f(Arb(intervals[i]))
+                    abs_value && Arblib.abs!(v, v)
+                    values[i] = v
                 end
             end
         else
@@ -483,10 +489,10 @@ function maximum_enclosure(
 )
     check_interval(a, b)
 
-    maybe_abs = abs_value ? abs : identity
-
     if a == b
-        return maybe_abs(f(Arb(a)))
+        res = f(Arb(a))
+        abs_value && Arblib.abs!(res, res)
+        return res
     end
 
     ubound_tol = convert(Arb, ubound_tol)
@@ -514,11 +520,15 @@ function maximum_enclosure(
         if degree < 0
             if threaded
                 Threads.@threads for i in eachindex(intervals)
-                    values[i] = maybe_abs(f(Arb(intervals[i])))
+                    v = f(Arb(intervals[i]))
+                    abs_value && Arblib.abs!(v, v)
+                    values[i] = v
                 end
             else
                 for i in eachindex(intervals)
-                    values[i] = maybe_abs(f(Arb(intervals[i])))
+                    v = f(Arb(intervals[i]))
+                    abs_value && Arblib.abs!(v, v)
+                    values[i] = v
                 end
             end
         else
