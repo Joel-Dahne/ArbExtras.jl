@@ -278,12 +278,13 @@ function extrema_enclosure(
               "min: $(format_interval(min_current_low, min_current_upp)) " *
               "max: $(format_interval(max_current_low, max_current_upp))"
 
-        non_finite_min = count(!isfinite, values_min)
-        non_finite_max = count(!isfinite, values_max)
-        verbose &&
-            (non_finite_min > 0 || non_finite_max) > 0 &&
-            @info "non-finite intervals: min: $(lpad(non_finite_min, 3)) " *
-                  "max: $(lpad(non_finite_max, 3))"
+        if verbose
+            non_finite_min = count(!isfinite, values_min)
+            non_finite_max = count(!isfinite, values_max)
+            (non_finite_min > 0 || non_finite_max > 0) &&
+                @info "non-finite intervals: min: $(lpad(non_finite_min, 3)) " *
+                      "max: $(lpad(non_finite_max, 3))"
+        end
 
         isempty(intervals) && break
 
@@ -441,8 +442,10 @@ function minimum_enclosure(
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
               "minimum: $(format_interval(min_current_low, min_current_upp))"
 
-        non_finite = count(!isfinite, values)
-        verbose && non_finite > 0 && @info "non-finite intervals: $non_finite"
+        if verbose
+            non_finite = count(!isfinite, values)
+            non_finite > 0 && @info "non-finite intervals: $non_finite"
+        end
 
         isempty(intervals) && break
 
@@ -594,8 +597,10 @@ function maximum_enclosure(
               "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
               "maximum: $(format_interval(max_current_low, max_current_upp))"
 
-        non_finite = count(!isfinite, values)
-        verbose && non_finite > 0 && @info "non-finite intervals: $non_finite"
+        if verbose
+            non_finite = count(!isfinite, values)
+            non_finite > 0 && @info "non-finite intervals: $non_finite"
+        end
 
         isempty(intervals) && break
 
