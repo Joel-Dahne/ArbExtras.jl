@@ -22,31 +22,31 @@ function _current_lower_upper_bound(
 )
     if minormax isa typeof(min)
         minormax! = Arblib.min!
-        minormaximum = minimum
     elseif minormax isa typeof(max)
         minormax! = Arblib.max!
-        minormaximum = maximum
     end
 
     if all(isfinite, values)
-        current_low = minormax(low, minormaximum(values_low))
-        current_upp = minormax(upp, minormaximum(values_upp))
+        current_low = copy(low)
+        current_upp = copy(upp)
+        for value in values_low
+            minormax!(current_low, current_low, value)
+        end
+        for value in values_upp
+            minormax!(current_upp, current_upp, value)
+        end
     elseif minormax isa typeof(min)
         current_low = Arf(-Inf, prec = precision(low))
         current_upp = upp
         for value in values_upp
-            if isfinite(value)
-                minormax!(current_upp, current_upp, value)
-            end
+            isfinite(value) && minormax!(current_upp, current_upp, value)
         end
     elseif minormax isa typeof(max)
-        current_low = upp
+        current_low = low
+        current_upp = Arf(Inf, prec = precision(upp))
         for value in values_low
-            if isfinite(value)
-                minormax!(current_low, current_low, value)
-            end
+            isfinite(value) && minormax!(current_low, current_low, value)
         end
-        current_upp = Arf(Inf, prec = precision(low))
     end
 
     return current_low, current_upp
