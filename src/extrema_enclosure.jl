@@ -203,9 +203,11 @@ function extrema_enclosure(
                         extrema_series(f, a, b; degree, abs_value)
                 end
             end
-            for point_value in filter(isfinite, point_values)
-                Arblib.min!(point_value_min, point_value_min, point_value)
-                Arblib.max!(point_value_max, point_value_max, point_value)
+            for v in point_values
+                if isfinite(v)
+                    Arblib.min!(point_value_min, point_value_min, v)
+                    Arblib.max!(point_value_max, point_value_max, v)
+                end
             end
         end
 
@@ -390,8 +392,8 @@ function minimum_enclosure(
                     values[i], point_values[i] = minimum_series(f, a, b; degree, abs_value)
                 end
             end
-            for point_value in filter(isfinite, point_values)
-                Arblib.min!(point_value_min, point_value_min, point_value)
+            for v in point_values
+                isfinite(v) && Arblib.min!(point_value_min, point_value_min, v)
             end
         end
 
@@ -543,8 +545,8 @@ function maximum_enclosure(
                     values[i], point_values[i] = maximum_series(f, a, b; degree, abs_value)
                 end
             end
-            for point_value in filter(isfinite, point_values)
-                Arblib.max!(point_value_max, point_value_max, point_value)
+            for v in point_values
+                isfinite(v) && Arblib.max!(point_value_max, point_value_max, v)
             end
         end
 
