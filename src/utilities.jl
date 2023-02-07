@@ -429,3 +429,36 @@ function enclosure_getinterval(x::Arb)
 
     return res1, res2
 end
+
+"""
+    derivative_function(f, n = 1)
+
+Return a function for computing the `n`th derivative of `f`.
+
+The returned function accepts only `Arb`, `Acb`, `ArbSeries` and
+`AcbSeries` as input. For `Arb` and `ArbSeries` it calls `f` with
+`ArbSeries`. For `Acb` and `AcbSeries` it calls `f` with `AcbSeries`.
+
+**IMPROVE:** Avoid overflow in factorial function for large `n`.
+"""
+function derivative_function(f, n::Integer = 1)
+    n >= 0 || throw(ArgumentError("n must be non-negative"))
+
+    return x::Union{Arb,Acb,ArbSeries,AcbSeries} -> begin
+        if x isa Arb
+            res = f(ArbSeries((x, 1), degree = n))[n]
+            Arblib.mul!(res, res, factorial(n))
+        elseif x isa Acb
+            res = f(AcbSeries((x, 1), degree = n))[n]
+            Arblib.mul!(res, res, factorial(n))
+        else
+            res = Arblib.derivative(
+                f(typeof(x)((Arblib.ref(x, 0), 1), degree = Arblib.degree(x) + n)),
+                n,
+            )
+            compose_zero!(res, res, x)
+        end
+
+        return res
+    end
+end
