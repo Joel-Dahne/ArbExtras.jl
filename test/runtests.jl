@@ -3,6 +3,7 @@ using Arblib, ArbExtras, Random, SpecialFunctions, Test
 include("demo_problems.jl")
 
 @testset "ArbExtras" begin
+    include("temporary.jl")
     include("utilities.jl")
 
     include("isolate_roots.jl")
