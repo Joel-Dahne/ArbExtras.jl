@@ -179,3 +179,52 @@ end
         )
     end
 end
+
+@testset "derivative_function" begin
+    args = (
+        Arb(0.5),
+        Arb(1),
+        Arb(1.5),
+        Acb(0.5, 0.6),
+        Acb(1, 1.1),
+        Acb(1.5, 1.6),
+        ArbSeries((0.5, 1)),
+        ArbSeries((1, 2.5)),
+        ArbSeries((1.5, -1)),
+        ArbSeries((1, 2, 3)),
+        ArbSeries((1, 2, 3, 4)),
+        ArbSeries((-1, 2, -3, 4)),
+        ArbSeries((0.5, 1), degree = 5),
+        AcbSeries((0.5 + 0.6im, 1)),
+        AcbSeries((1 + 1.1im, 2.5 + 2.6im)),
+        AcbSeries((1.5 + 1.6im, -1)),
+        AcbSeries((1 + 1.1im, 2 + 2.2im, 3 + 3.3im)),
+        AcbSeries((1 + 1.1im, 2 + 2.2im, 3 + 3.3im, 4 + 4.4im)),
+        AcbSeries((-1 + 1.1im, 2 - 2.2im, -3 + 3.3im, 4 - 4.4im)),
+        AcbSeries((0.5 + 0.6im, 1), degree = 5),
+    )
+
+    for (f1, df1, d2f1, d3f1) in (
+        (sin, cos, x -> -sin(x), x -> -cos(x)),
+        (
+            tan,
+            x -> sec(x)^2,
+            x -> 2tan(x) * sec(x)^2,
+            x -> 2sec(x)^2 * (2tan(x)^2 + sec(x)^2),
+        ),
+        (atan, x -> inv(1 + x^2), x -> -2x / (1 + x^2)^2, x -> (6x^2 - 2) / (1 + x^2)^3),
+    )
+
+        f2 = ArbExtras.derivative_function(f1, 0)
+        df2 = ArbExtras.derivative_function(f1, 1)
+        d2f2 = ArbExtras.derivative_function(f1, 2)
+        d3f2 = ArbExtras.derivative_function(f1, 3)
+
+        for x in args
+            @test Arblib.overlaps(f1(x), f2(x))
+            @test Arblib.overlaps(df1(x), df2(x))
+            @test Arblib.overlaps(d2f1(x), d2f2(x))
+            @test Arblib.overlaps(d3f1(x), d3f2(x))
+        end
+    end
+end
