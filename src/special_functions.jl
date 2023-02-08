@@ -111,14 +111,9 @@ function SpecialFunctions.besselj(ν::Arblib.ArbOrRef, z::Arblib.ArbSeries)
         end
     end
 
-    # Compose the Taylor series for the Bessel function with that of z
-
-    # First set the constant in z to 0 temporarily
-    Arblib.zero!(Arblib.ref(z, 0))
-    Arblib.compose_series!(res, res, z, deg + 1)
-    Arblib.set!(Arblib.ref(z, 0), x)
-
-    return res
+    # Finally compose the Taylor series for the Bessel function with
+    # that of z
+    return compose_zero!(res, res, z)
 end
 
 SpecialFunctions.besselj0(z::ArbSeries) = besselj(zero(Arb), z)
