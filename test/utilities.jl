@@ -79,24 +79,51 @@
     end
 
     @testset "check_tolerance" begin
-        @test ArbExtras.check_tolerance(Arb((1, 1.1)), atol = 0.2, rtol = 0.2)
-        @test ArbExtras.check_tolerance(Arb((1, 1.1)), atol = 0.2, rtol = 0.05)
-        @test ArbExtras.check_tolerance(Arb((1, 1.1)), atol = 0.05, rtol = 0.2)
-        @test !ArbExtras.check_tolerance(Arb((1, 1.1)), atol = 0.05, rtol = 0.05)
+        @testset "x::Arb" begin
+            @test ArbExtras.check_tolerance(Arb((1, 1.1)), atol = 0.2, rtol = 0.2)
+            @test ArbExtras.check_tolerance(Arb((1, 1.1)), atol = 0.2, rtol = 0.05)
+            @test ArbExtras.check_tolerance(Arb((1, 1.1)), atol = 0.05, rtol = 0.2)
+            @test !ArbExtras.check_tolerance(Arb((1, 1.1)), atol = 0.05, rtol = 0.05)
 
-        @test ArbExtras.check_tolerance(Arb((3, 3.1)), atol = 0.2)
-        @test !ArbExtras.check_tolerance(Arb((3, 3.1)), atol = 0.05)
-        @test ArbExtras.check_tolerance(Arb(1), atol = 0)
+            @test ArbExtras.check_tolerance(Arb((3, 3.1)), atol = 0.2)
+            @test !ArbExtras.check_tolerance(Arb((3, 3.1)), atol = 0.05)
+            @test ArbExtras.check_tolerance(Arb(1), atol = 0)
 
-        @test ArbExtras.check_tolerance(Arb((10, 10.1)), rtol = 0.02)
-        @test !ArbExtras.check_tolerance(Arb((10, 10.1)), rtol = 0.005)
-        @test ArbExtras.check_tolerance(Arb(1), rtol = 0)
-        @test ArbExtras.check_tolerance(Arb(0), rtol = 0)
-        @test !ArbExtras.check_tolerance(Arb(π) - Arb(π), rtol = 1)
+            @test ArbExtras.check_tolerance(Arb((10, 10.1)), rtol = 0.02)
+            @test !ArbExtras.check_tolerance(Arb((10, 10.1)), rtol = 0.005)
+            @test ArbExtras.check_tolerance(Arb(1), rtol = 0)
+            @test ArbExtras.check_tolerance(Arb(0), rtol = 0)
+            @test !ArbExtras.check_tolerance(Arb(π) - Arb(π), rtol = 1)
 
-        @test !ArbExtras.check_tolerance(Arb(NaN))
-        @test !ArbExtras.check_tolerance(Arb(Inf))
-        @test ArbExtras.check_tolerance(Arb((-1000, 1000)))
+            @test !ArbExtras.check_tolerance(Arb(NaN))
+            @test !ArbExtras.check_tolerance(Arb(Inf))
+            @test ArbExtras.check_tolerance(Arb((-1000, 1000)))
+        end
+
+        @testset "x::AbstractVector" begin
+            prop_check_tolerance_elementwise((x, atol, rtol)) =
+                ArbExtras.check_tolerance(x; atol, rtol) ==
+                all(xᵢ -> ArbExtras.check_tolerance(xᵢ; atol, rtol), x)
+
+            sample = [
+                Arb(0),
+                Arb(1),
+                Arb(π),
+                Arb((1, 1.1)),
+                Arb((3, 3.1)),
+                Arb((10, 10.1)),
+                Arb(NaN),
+                Arb(Inf),
+                Arb((-1000, 1000)),
+            ]
+
+            gen_tol = isample(range(0, 1, 10), PropCheck.noshrink)
+            gen_vec = PropCheck.vector(isample(0:5), isample(sample, PropCheck.noshrink))
+
+            gen = interleave(gen_vec, gen_tol, gen_tol)
+
+            @test check(prop_check_tolerance_elementwise, gen, ntests = 1000)
+        end
     end
 
     @testset "check_interval" begin
