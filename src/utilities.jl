@@ -73,9 +73,9 @@ end
 """
     bisect_interval(a::Arf, b::Arf; log_midpoint::Bool = false)
 
-Compute the midpoint of `a and `b` and return two tuples, `(a,
-midpoint)` and `(midpoint, b)`, which corresponds to splitting the
-interval in half.
+Compute the midpoint `mid` of `a` and `b` and return two tuples, `(a,
+mid)` and `(mid, b)`, which corresponds to splitting the interval in
+half.
 
 If `log_midpoint = true` then the midpoint is computed in logarithmic
 scale. If `a, b > 0` this sets the midpoint to `exp((log(a) + log(b))
@@ -92,7 +92,7 @@ bisection could give very slow convergence.
 TODO: Think about how to handle a logarithmic bisection when the
 interval contains zero.
 
-The value of `midpoint` is aliased in the two tuples and care should
+The value of `mid` is aliased in the two tuples and care should
 therefore be taken if doing inplace operations on it.
 """
 function bisect_interval(a::T, b::T; log_midpoint::Bool = false) where {T<:Union{Arf,Arb}}
