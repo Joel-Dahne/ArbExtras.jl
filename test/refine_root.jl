@@ -92,11 +92,11 @@
         @test isnan(ArbExtras.refine_root(sinpi, enclosure))
         root = ArbExtras.refine_root(sinpi, enclosure, strict = false)
         @test Arblib.overlaps(root, enclosure)
-        @test contains(root, 1)
+        @test Arblib.contains(root, 1)
 
         # Test that it doesn't find a root if the root is just outside the
         # enclosure
-        @test !contains(enclosure + Arb(1e-40), 1)
+        @test !Arblib.contains(enclosure + Arb(1e-40), 1)
         @test isnan(ArbExtras.refine_root(sinpi, enclosure + Arb(1e-40)))
 
         # Check max_iterations
@@ -106,7 +106,7 @@
         # gives a correct enclosure. This is done so that the convergence
         # for the Newton iterations is very slow.
         f(x::Arb) = begin
-            return union(Arb(1), x) - 1
+            return Arblib.union(Arb(1), x) - 1
         end
         f(x) = x - 1
 

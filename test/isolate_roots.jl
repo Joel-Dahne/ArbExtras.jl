@@ -178,12 +178,14 @@
 
             # Check that all roots are accounted for
             found_balls = Arb.(found)
-            @test all(any(contains(root), found_balls) for root in roots)
+            @test all(any(x -> Arblib.contains(x, root), found_balls) for root in roots)
 
             # Check that all roots are reported as unique and that they
             # indeed are
             @test all(flags)
-            @test all(isone(count(contains(root), found_balls)) for root in roots)
+            @test all(
+                isone(count(x -> Arblib.contains(x, root), found_balls)) for root in roots
+            )
         end
 
         @testset "sin(1/x)" begin
@@ -236,12 +238,14 @@
 
             # Check that all roots are accounted for
             found_balls = Arb.(found)
-            @test all(any(contains(root), found_balls) for root in roots)
+            @test all(any(x -> Arblib.contains(x, root), found_balls) for root in roots)
 
             # Check that all roots are reported as unique and that they
             # indeed are
             @test all(flags)
-            @test all(isone(count(contains(root), found_balls)) for root in roots)
+            @test all(
+                isone(count(x -> Arblib.contains(x, root), found_balls)) for root in roots
+            )
         end
 
         @testset "ArbPoly - check_unique = false" begin

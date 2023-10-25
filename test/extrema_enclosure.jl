@@ -86,7 +86,7 @@
         # Test lbound_tol and ubound_tol
         # Should terminate after one evaluation
         @test all(
-            contains.(
+            Arblib.contains.(
                 ArbExtras.extrema_enclosure(
                     cos,
                     Arf(-4),
@@ -98,11 +98,11 @@
                 Arb((-1, 1)),
             ),
         )
-        @test contains(
+        @test Arblib.contains(
             ArbExtras.minimum_enclosure(cos, Arf(-4), Arf(4), lbound_tol = -2, degree = -1),
             Arb((-1, 1)),
         )
-        @test contains(
+        @test Arblib.contains(
             ArbExtras.maximum_enclosure(cos, Arf(-4), Arf(4), ubound_tol = 2, degree = -1),
             Arb((-1, 1)),
         )
