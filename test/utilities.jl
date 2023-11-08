@@ -117,7 +117,7 @@
                 Arb((-1000, 1000)),
             ]
 
-            gen_tol = isample(range(0, 1, 10), PropCheck.noshrink)
+            gen_tol = isample(range(0, 1, length = 10), PropCheck.noshrink)
             gen_vec = PropCheck.vector(isample(0:5), isample(sample, PropCheck.noshrink))
 
             gen = interleave(gen_vec, gen_tol, gen_tol)
