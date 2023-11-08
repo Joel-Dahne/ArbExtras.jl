@@ -19,7 +19,7 @@ function SpecialFunctions.besselj(ν::Arblib.ArbOrRef, z::Arblib.ArbSeries)
         Arblib.hypgeom_bessel_j!(ai, tmp, x)
 
         # tmp = besselj(ν + 1, x)
-        # ai += tmp
+        # ai -= tmp
         Arblib.add!(tmp, ν, 1)
         Arblib.hypgeom_bessel_j!(tmp, tmp, x)
         Arblib.sub!(ai, ai, tmp)

@@ -67,14 +67,14 @@ function demo_problem(i::Integer, thin = false)
         roots, flags = ArbExtras.isolate_roots(df, Arblib.getinterval(Arf, xmin)...)
         @assert only(flags)
         root_min = ArbExtras.refine_root(df, Arb(only(roots)))
-        xmin = Arblib.intersect(Arb((a, b)), root_min)
+        xmin = Arblib.intersection(Arb((a, b)), root_min)
     end
 
     if !iszero(Arblib.radref(xmax))
         roots, flags = ArbExtras.isolate_roots(df, Arblib.getinterval(Arf, xmax)...)
         @assert only(flags)
         root_max = ArbExtras.refine_root(df, Arb(only(roots)))
-        xmax = Arblib.intersect(Arb((a, b)), root_max)
+        xmax = Arblib.intersection(Arb((a, b)), root_max)
     end
 
     if thin
@@ -82,8 +82,8 @@ function demo_problem(i::Integer, thin = false)
         interval_min = add_error(xmin, Mag(1e-2))
         interval_max = add_error(xmax, Mag(1e-2))
         # Intersect with interval
-        c_min, d_min = getinterval(Arf, intersect(Arb((a, b)), interval_min))
-        c_max, d_max = getinterval(Arf, intersect(Arb((a, b)), interval_max))
+        c_min, d_min = getinterval(Arf, Arblib.intersection(Arb((a, b)), interval_min))
+        c_max, d_max = getinterval(Arf, Arblib.intersection(Arb((a, b)), interval_max))
 
         return f, (c_min, d_min), f(xmin)
     else

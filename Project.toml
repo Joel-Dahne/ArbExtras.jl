@@ -1,12 +1,23 @@
 name = "ArbExtras"
 uuid = "c87f5d39-a852-4149-8a88-e3a13a25afc6"
 authors = ["Joel Dahne <joel@dahne.eu>"]
-version = "0.1.9"
+version = "0.1.10"
 
 [deps]
 Arblib = "fb37089c-8514-4489-9461-98f9c8763369"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [compat]
-Arblib = "0.8"
+Arblib = "1"
+Random = "1.6"
 SpecialFunctions = "1, 2"
+Test = "1.6"
+julia = "1.6"
+
+[extras]
+PropCheck = "ca382230-33be-11e9-0059-d981d03070e4"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["PropCheck", "Random", "Test"]

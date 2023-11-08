@@ -72,9 +72,8 @@ function _extrema_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = 
                 elseif p_a >= p_b
                     return p_b, p_a
                 else
-                    res_min = min(p_a, p_b)
-                    Arblib.max!(p_b, p_a, p_b) # Reuse p_b
-                    return res_min, p_b
+                    Arblib.minmax!(p_a, p_b, p_a, p_b)
+                    return p_a, p_b
                 end
             end
         else
@@ -87,9 +86,8 @@ function _extrema_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = 
                 # Decreasing
                 return p_b, p_a
             else
-                res_min = min(p_a, p_b)
-                Arblib.max!(p_b, p_a, p_b) # Reuse p_b
-                return res_min, p_b
+                Arblib.minmax!(p_a, p_b, p_a, p_b)
+                return p_a, p_b
             end
         end
     elseif deg == 2
@@ -158,32 +156,28 @@ function _extrema_polynomial_low_degree(p::ArbPoly, a::Arf, b::Arf; abs_value = 
                 return p_a, p_b
             else
                 if root_intersects
-                    res_min = min(p_a, p_b)
-                    Arblib.min!(res_min, res_min, p_root)
-
-                    Arblib.max!(p_b, p_a, p_b) # Reuse p_b
+                    # Reuse p_a for min and p_b for max
+                    Arblib.minmax!(p_a, p_b, p_a, p_b)
+                    Arblib.min!(p_a, p_a, p_root)
                     Arblib.max!(p_b, p_b, p_root)
-
-                    return res_min, p_b
+                    return p_a, p_b
                 else
-                    Arblib.min!(p_root, p_a, p_b) # Reuse p_root
-                    Arblib.max!(p_b, p_a, p_b)
-                    return p_root, p_b
+                    # Reuse p_a for min and p_b for max
+                    Arblib.minmax!(p_a, p_b, p_a, p_b)
+                    return p_a, p_b
                 end
             end
         else
             if root_intersects
-                res_min = min(p_a, p_b)
-                Arblib.min!(res_min, res_min, p_root)
-
-                Arblib.max!(p_b, p_a, p_b) # Reuse p_b
+                # Reuse p_a for min and p_b for max
+                Arblib.minmax!(p_a, p_b, p_a, p_b)
+                Arblib.min!(p_a, p_a, p_root)
                 Arblib.max!(p_b, p_b, p_root)
-
-                return res_min, p_b
+                return p_a, p_b
             else
-                Arblib.min!(p_root, p_a, p_b) # Reuse p_root
-                Arblib.max!(p_b, p_a, p_b)
-                return p_root, p_b
+                # Reuse p_a for min and p_b for max
+                Arblib.minmax!(p_a, p_b, p_a, p_b)
+                return p_a, p_b
             end
         end
     else

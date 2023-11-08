@@ -1,4 +1,4 @@
-using Arblib, ArbExtras, Random, SpecialFunctions, Test
+using Arblib, ArbExtras, PropCheck, Random, SpecialFunctions, Test
 
 include("demo_problems.jl")
 

@@ -73,9 +73,9 @@ end
 """
     bisect_interval(a::Arf, b::Arf; log_midpoint::Bool = false)
 
-Compute the midpoint of `a and `b` and return two tuples, `(a,
-midpoint)` and `(midpoint, b)`, which corresponds to splitting the
-interval in half.
+Compute the midpoint `mid` of `a` and `b` and return two tuples, `(a,
+mid)` and `(mid, b)`, which corresponds to splitting the interval in
+half.
 
 If `log_midpoint = true` then the midpoint is computed in logarithmic
 scale. If `a, b > 0` this sets the midpoint to `exp((log(a) + log(b))
@@ -92,7 +92,7 @@ bisection could give very slow convergence.
 TODO: Think about how to handle a logarithmic bisection when the
 interval contains zero.
 
-The value of `midpoint` is aliased in the two tuples and care should
+The value of `mid` is aliased in the two tuples and care should
 therefore be taken if doing inplace operations on it.
 """
 function bisect_interval(a::T, b::T; log_midpoint::Bool = false) where {T<:Union{Arf,Arb}}
@@ -205,9 +205,12 @@ end
 
 """
     check_tolerance(x::Arb; atol = nothing, rtol = nothing)
+    check_tolerance(x::AbstractVector{Arb}; atol = nothing, rtol = nothing)
 
 Return `true` if `x` satisfies the absolute tolerance `atol` or the
 relative tolerance `rtol`.
+
+For `x::AbstractVector{Arb}` the tolerance is checked element-wise.
 
 The absolute tolerance is satisfied if the diameter of `x` is less
 than or equal to `atol`.
@@ -222,11 +225,11 @@ if `x` is finite.
 
 It always returns true if `x` is finite and the radius is zero.
 """
-function check_tolerance(x::Arb; atol = nothing, rtol = nothing)
+function check_tolerance(x::Arblib.ArbOrRef; atol = nothing, rtol = nothing)
     isfinite(x) || return false
     isnothing(atol) && isnothing(rtol) && return true
 
-    iszero(Arblib.radref(x)) && return true
+    Arblib.isexact(x) && return true
 
     # Radius is always non-zero from here
 
@@ -241,6 +244,45 @@ function check_tolerance(x::Arb; atol = nothing, rtol = nothing)
     else
         return false
     end
+end
+
+function check_tolerance(
+    x::AbstractVector{<:Arblib.ArbOrRef};
+    atol = nothing,
+    rtol = nothing,
+)
+    if x isa Arblib.ArbVectorLike
+        isfinite(x) || return false
+    else
+        all(isfinite, x) || return false
+    end
+    isnothing(atol) && isnothing(rtol) && return true
+
+    error = Mag()
+
+    for i in eachindex(x)
+        xᵢ = if x isa ArbVector
+            Arblib.ref(x, i)
+        else
+            x[i]
+        end
+
+        Arblib.isexact(xᵢ) && continue
+
+        Arblib.mul_2exp!(error, Arblib.radref(xᵢ), 1)
+
+        !isnothing(atol) && !iszero(atol) && error <= atol && continue
+
+        if !isnothing(rtol) && !iszero(rtol) && !Arblib.contains_zero(xᵢ)
+            bound = rtol * xᵢ # IMPROVE: Avoid this allocation
+            error <= Arblib.abs!(bound, bound) && continue
+        end
+
+        # Current index doesn't satisfy the tolerance
+        return false
+    end
+
+    return true
 end
 
 """

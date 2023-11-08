@@ -37,7 +37,7 @@ degree 4 and only the zeroth and fourth order term are ever used.
 function integrate_gauss_legendre(f, a::Arb, b::Arb)
     bma = b - a
 
-    # x_series = ArbSeries((union(a, b), 1), degree = 4)
+    # x_series = ArbSeries((Arblib.union(a, b), 1), degree = 4)
     x_series = ArbSeries(degree = 4, prec = precision(bma))
     # We need to do it in this order so that the degree of the
     # polynomial is correct when we set the constant coefficient.
