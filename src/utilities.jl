@@ -481,6 +481,8 @@ The returned function accepts only `Arb`, `Acb`, `ArbSeries` and
 `AcbSeries` as input. For `Arb` and `ArbSeries` it calls `f` with
 `ArbSeries`. For `Acb` and `AcbSeries` it calls `f` with `AcbSeries`.
 
+If `f` is a polynomial, then return the derivative of the polynomial.
+
 **IMPROVE:** Avoid overflow in factorial function for large `n`.
 """
 function derivative_function(f, n::Integer = 1)
@@ -504,3 +506,5 @@ function derivative_function(f, n::Integer = 1)
         return res
     end
 end
+
+derivative_function(p::Union{ArbPoly,AcbPoly}, n::Integer = 1) = Arblib.derivative(p, n)
