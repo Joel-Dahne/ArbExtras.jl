@@ -86,7 +86,7 @@ end
 
 Compute an enclosure of the integral of `f on the interval `[a, b]`.
 
-It uses a Guass-Legendre quadrature of order 2 through
+It uses a Gauss-Legendre quadrature of order 2 through
 [`integrate_gauss_legendre`](@ref) together with bisection of the
 interval. On each subinterval the integral is computed using
 [`integrate_gauss_legendre`](@ref) and it checks if the result
