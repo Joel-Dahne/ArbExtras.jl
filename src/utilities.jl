@@ -258,7 +258,7 @@ function check_tolerance(
     end
     isnothing(atol) && isnothing(rtol) && return true
 
-    error = Mag()
+    error = Arb()
 
     for i in eachindex(x)
         xᵢ = if x isa ArbVector
@@ -269,7 +269,8 @@ function check_tolerance(
 
         Arblib.isexact(xᵢ) && continue
 
-        Arblib.mul_2exp!(error, Arblib.radref(xᵢ), 1)
+        Arblib.set!(error, Arblib.radref(xᵢ))
+        Arblib.mul_2exp!(error, error, 1)
 
         !isnothing(atol) && !iszero(atol) && error <= atol && continue
 
