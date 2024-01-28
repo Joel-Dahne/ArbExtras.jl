@@ -178,10 +178,12 @@ function extrema_enclosure(
         values_max = similar(intervals, Arb)
         if degree < 0
             if threaded
-                Threads.@threads for i in eachindex(intervals)
-                    v = f(Arb(intervals[i]))
-                    abs_value && Arblib.abs!(v, v)
-                    values_min[i] = values_max[i] = v
+                let intervals = intervals
+                    Threads.@threads for i in eachindex(intervals)
+                        v = f(Arb(intervals[i]))
+                        abs_value && Arblib.abs!(v, v)
+                        values_min[i] = values_max[i] = v
+                    end
                 end
             else
                 for i in eachindex(intervals)
@@ -193,9 +195,11 @@ function extrema_enclosure(
         else
             point_values = similar(values_min)
             if threaded
-                Threads.@threads for i in eachindex(intervals)
-                    values_min[i], values_max[i], point_values[i] =
-                        extrema_series(f, intervals[i]...; degree, abs_value)
+                let intervals = intervals
+                    Threads.@threads for i in eachindex(intervals)
+                        values_min[i], values_max[i], point_values[i] =
+                            extrema_series(f, a, b; degree, abs_value)
+                    end
                 end
             else
                 for (i, (a, b)) in enumerate(intervals)
@@ -369,10 +373,12 @@ function minimum_enclosure(
         values = similar(intervals, Arb)
         if degree < 0
             if threaded
-                Threads.@threads for i in eachindex(intervals)
-                    v = f(Arb(intervals[i]))
-                    abs_value && Arblib.abs!(v, v)
-                    values[i] = v
+                let intervals = intervals
+                    Threads.@threads for i in eachindex(intervals)
+                        v = f(Arb(intervals[i]))
+                        abs_value && Arblib.abs!(v, v)
+                        values[i] = v
+                    end
                 end
             else
                 for i in eachindex(intervals)
@@ -384,9 +390,11 @@ function minimum_enclosure(
         else
             point_values = similar(values)
             if threaded
-                Threads.@threads for i in eachindex(intervals)
-                    values[i], point_values[i] =
-                        minimum_series(f, intervals[i]...; degree, abs_value)
+                let intervals = intervals
+                    Threads.@threads for i in eachindex(intervals)
+                        values[i], point_values[i] =
+                            minimum_series(f, intervals[i]...; degree, abs_value)
+                    end
                 end
             else
                 for (i, (a, b)) in enumerate(intervals)
@@ -524,10 +532,12 @@ function maximum_enclosure(
         values = similar(intervals, Arb)
         if degree < 0
             if threaded
-                Threads.@threads for i in eachindex(intervals)
-                    v = f(Arb(intervals[i]))
-                    abs_value && Arblib.abs!(v, v)
-                    values[i] = v
+                let intervals = intervals
+                    Threads.@threads for i in eachindex(intervals)
+                        v = f(Arb(intervals[i]))
+                        abs_value && Arblib.abs!(v, v)
+                        values[i] = v
+                    end
                 end
             else
                 for i in eachindex(intervals)
@@ -539,9 +549,11 @@ function maximum_enclosure(
         else
             point_values = similar(values)
             if threaded
-                Threads.@threads for i in eachindex(intervals)
-                    values[i], point_values[i] =
-                        maximum_series(f, intervals[i]...; degree, abs_value)
+                let intervals = intervals
+                    Threads.@threads for i in eachindex(intervals)
+                        values[i], point_values[i] =
+                            maximum_series(f, intervals[i]...; degree, abs_value)
+                    end
                 end
             else
                 for (i, (a, b)) in enumerate(intervals)

@@ -90,8 +90,10 @@ function bounded_by(
         values = similar(intervals, Arb)
         if degree < 0
             if threaded
-                Threads.@threads for i in eachindex(intervals)
-                    values[i] = maybe_abs(f(Arb(intervals[i])))
+                let intervals = intervals
+                    Threads.@threads for i in eachindex(intervals)
+                        values[i] = maybe_abs(f(Arb(intervals[i])))
+                    end
                 end
             else
                 for i in eachindex(intervals)
@@ -100,8 +102,10 @@ function bounded_by(
             end
         else
             if threaded
-                Threads.@threads for i in eachindex(intervals)
-                    values[i], _ = maximum_series(f, intervals[i]...; degree, abs_value)
+                let intervals = intervals
+                    Threads.@threads for i in eachindex(intervals)
+                        values[i], _ = maximum_series(f, intervals[i]...; degree, abs_value)
+                    end
                 end
             else
                 for (i, (a, b)) in enumerate(intervals)
