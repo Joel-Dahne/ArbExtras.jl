@@ -124,7 +124,7 @@ function bisect_interval_recursive(
     depth::Integer;
     log_midpoint::Bool = false,
 ) where {T<:Union{Arf,Arb}}
-    depth >= 0 || Throw(ArgumentError("depth needs to be non-negative, got $depth"))
+    depth >= 0 || throw(ArgumentError("depth needs to be non-negative, got $depth"))
 
     if T == Arf && log_midpoint
         buffer = Arb()
