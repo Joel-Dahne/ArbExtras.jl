@@ -1,7 +1,7 @@
 name = "ArbExtras"
 uuid = "c87f5d39-a852-4149-8a88-e3a13a25afc6"
 authors = ["Joel Dahne <joel@dahne.eu>"]
-version = "0.1.10"
+version = "1.0.0"
 
 [deps]
 Arblib = "fb37089c-8514-4489-9461-98f9c8763369"
@@ -9,6 +9,7 @@ SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [compat]
 Arblib = "1"
+PropCheck = "0.10"
 Random = "1.6"
 SpecialFunctions = "1, 2"
 Test = "1.6"

@@ -57,7 +57,7 @@ root.
 function refine_root(
     f,
     root::Arb;
-    df = f isa ArbPoly ? Arblib.derivative(f) : x -> f(ArbSeries((x, 1)))[1],
+    df = derivative_function(f),
     atol = 0,
     rtol = 4eps(one(root)),
     min_iterations = 1,

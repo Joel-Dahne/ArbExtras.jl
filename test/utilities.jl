@@ -102,6 +102,7 @@
 
         @testset "x::AbstractVector" begin
             prop_check_tolerance_elementwise((x, atol, rtol)) =
+                ArbExtras.check_tolerance(ArbVector(x); atol, rtol) ==
                 ArbExtras.check_tolerance(x; atol, rtol) ==
                 all(xᵢ -> ArbExtras.check_tolerance(xᵢ; atol, rtol), x)
 

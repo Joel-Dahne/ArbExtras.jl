@@ -124,7 +124,7 @@ function bisect_interval_recursive(
     depth::Integer;
     log_midpoint::Bool = false,
 ) where {T<:Union{Arf,Arb}}
-    depth >= 0 || Throw(ArgumentError("depth needs to be non-negative, got $depth"))
+    depth >= 0 || throw(ArgumentError("depth needs to be non-negative, got $depth"))
 
     if T == Arf && log_midpoint
         buffer = Arb()
@@ -258,7 +258,7 @@ function check_tolerance(
     end
     isnothing(atol) && isnothing(rtol) && return true
 
-    error = Mag()
+    error = Arb()
 
     for i in eachindex(x)
         xᵢ = if x isa ArbVector
@@ -269,7 +269,8 @@ function check_tolerance(
 
         Arblib.isexact(xᵢ) && continue
 
-        Arblib.mul_2exp!(error, Arblib.radref(xᵢ), 1)
+        Arblib.set!(error, Arblib.radref(xᵢ))
+        Arblib.mul_2exp!(error, error, 1)
 
         !isnothing(atol) && !iszero(atol) && error <= atol && continue
 
@@ -481,6 +482,8 @@ The returned function accepts only `Arb`, `Acb`, `ArbSeries` and
 `AcbSeries` as input. For `Arb` and `ArbSeries` it calls `f` with
 `ArbSeries`. For `Acb` and `AcbSeries` it calls `f` with `AcbSeries`.
 
+If `f` is a polynomial, then return the derivative of the polynomial.
+
 **IMPROVE:** Avoid overflow in factorial function for large `n`.
 """
 function derivative_function(f, n::Integer = 1)
@@ -504,3 +507,5 @@ function derivative_function(f, n::Integer = 1)
         return res
     end
 end
+
+derivative_function(p::Union{ArbPoly,AcbPoly}, n::Integer = 1) = Arblib.derivative(p, n)

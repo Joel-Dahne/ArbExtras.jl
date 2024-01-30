@@ -9,8 +9,12 @@ Return `true` if `p` is of the form `c + x`.
 iscpx(p::Union{ArbPoly,AcbPoly,ArbSeries,AcbSeries}) =
     length(Arblib.cstruct(p)) == 2 && isone(Arblib.ref(p, 1))
 
-function compose_zero!(res::T, p::T, q::T) where {T<:Union{ArbPoly,AcbPoly}}
+"""
+    compose_zero!(res::T, p::T, q::T) where {T<:Union{ArbPoly,AcbPoly,ArbSeries,AcbSeries}}
 
+In-place version of [`compose_zero`](@ref).
+"""
+function compose_zero!(res::T, p::T, q::T) where {T<:Union{ArbPoly,AcbPoly}}
     iscpx(q) && return Arblib.set!(res, p)
 
     if !iszero(q) && !iszero(Arblib.ref(q, 0))
