@@ -1,4 +1,13 @@
-function SpecialFunctions.besselj(ν::Arblib.ArbOrRef, z::Arblib.ArbSeries)
+# Both besselj and bessely satisfy the same differential equation and
+# hence use the same recursion formula for the Taylor expansion. The
+# only difference is in the use of besselj or bessely when computing
+# the first four terms. This function allows the code to be reused
+# between the to versions.
+function _besseljy(
+    besseljy!::Union{typeof(Arblib.hypgeom_bessel_j!),typeof(Arblib.hypgeom_bessel_y!)},
+    ν::Arblib.ArbOrRef,
+    z::Arblib.ArbSeries,
+)
     deg = Arblib.degree(z)
     res = zero(z)
 
@@ -6,22 +15,22 @@ function SpecialFunctions.besselj(ν::Arblib.ArbOrRef, z::Arblib.ArbSeries)
     tmp = zero(x)
     ai = zero(x)
 
-    # ai = besselj(ν, x)
-    Arblib.hypgeom_bessel_j!(ai, ν, x)
+    # ai = besseljy(ν, x)
+    besseljy!(ai, ν, x)
 
     res[0] = ai
 
     if deg >= 1
-        # ai = (besselj(ν - 1, x) - besselj(ν + 1, x)) / 2
+        # ai = (besseljy(ν - 1, x) - besseljy(ν + 1, x)) / 2
 
-        # ai = besselj(ν - 1, x)
+        # ai = besseljy(ν - 1, x)
         Arblib.sub!(tmp, ν, 1)
-        Arblib.hypgeom_bessel_j!(ai, tmp, x)
+        besseljy!(ai, tmp, x)
 
-        # tmp = besselj(ν + 1, x)
+        # tmp = besseljy(ν + 1, x)
         # ai -= tmp
         Arblib.add!(tmp, ν, 1)
-        Arblib.hypgeom_bessel_j!(tmp, tmp, x)
+        besseljy!(tmp, tmp, x)
         Arblib.sub!(ai, ai, tmp)
 
         # ai /= 2
@@ -30,16 +39,16 @@ function SpecialFunctions.besselj(ν::Arblib.ArbOrRef, z::Arblib.ArbSeries)
         res[1] = ai
 
         if deg >= 2
-            # ai = (besselj(ν - 2, x) + besselj(ν + 2, x) - 2a0) / 8
+            # ai = (besseljy(ν - 2, x) + besseljy(ν + 2, x) - 2a0) / 8
 
-            # ai = besselj(ν - 2, x)
+            # ai = besseljy(ν - 2, x)
             Arblib.sub!(tmp, ν, 2)
-            Arblib.hypgeom_bessel_j!(ai, tmp, x)
+            besseljy!(ai, tmp, x)
 
-            # tmp = besselj(ν + 2, x)
+            # tmp = besseljy(ν + 2, x)
             # ai += tmp
             Arblib.add!(tmp, ν, 2)
-            Arblib.hypgeom_bessel_j!(tmp, tmp, x)
+            besseljy!(tmp, tmp, x)
             Arblib.add!(ai, ai, tmp)
 
             # ai -= 2a0
@@ -52,16 +61,16 @@ function SpecialFunctions.besselj(ν::Arblib.ArbOrRef, z::Arblib.ArbSeries)
             res[2] = ai
 
             if deg >= 3
-                # ai = (besselj(ν - 3, x) - besselj(ν + 3, x) - 6a1) / 48
+                # ai = (besseljy(ν - 3, x) - besseljy(ν + 3, x) - 6a1) / 48
 
-                # ai = besselj(ν - 3, x)
+                # ai = besseljy(ν - 3, x)
                 Arblib.sub!(tmp, ν, 3)
-                Arblib.hypgeom_bessel_j!(ai, tmp, x)
+                besseljy!(ai, tmp, x)
 
-                # tmp = besselj(ν + 3, x)
+                # tmp = besseljy(ν + 3, x)
                 # ai += tmp
                 Arblib.add!(tmp, ν, 3)
-                Arblib.hypgeom_bessel_j!(tmp, tmp, x)
+                besseljy!(tmp, tmp, x)
                 Arblib.sub!(ai, ai, tmp)
 
                 # ai -= 6a1
@@ -116,5 +125,12 @@ function SpecialFunctions.besselj(ν::Arblib.ArbOrRef, z::Arblib.ArbSeries)
     return compose_zero!(res, res, z)
 end
 
+SpecialFunctions.besselj(ν::Arblib.ArbOrRef, z::Arblib.ArbSeries) =
+    _besseljy(Arblib.hypgeom_bessel_j!, ν, z)
+SpecialFunctions.bessely(ν::Arblib.ArbOrRef, z::Arblib.ArbSeries) =
+    _besseljy(Arblib.hypgeom_bessel_y!, ν, z)
+
 SpecialFunctions.besselj0(z::ArbSeries) = besselj(zero(Arb), z)
 SpecialFunctions.besselj1(z::ArbSeries) = besselj(one(Arb), z)
+SpecialFunctions.bessely0(z::ArbSeries) = bessely(zero(Arb), z)
+SpecialFunctions.bessely1(z::ArbSeries) = bessely(one(Arb), z)
