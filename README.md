@@ -90,8 +90,9 @@ things:
   derivative of `f`, which is computed using `ArbSeries`. So it can be
   of use if there is no implementation of `f(::Acb)`, but there is one
   for `f(::ArbSeries)`.
-- `SpecialFunctions.besselj(ν::Arb, z::ArbSeries)` for computing
-  Taylor expansions of the Bessel function.
+- `SpecialFunctions.besselj(ν::Arb, z::ArbSeries)` and
+  `SpecialFunctions.bessely(ν::Arb, z::ArbSeries)` for computing
+  Taylor expansions of the Bessel functions.
 - Utility functions which are mainly for internal use, but could
   be useful in other cases as well , see their documentation for
   details.
