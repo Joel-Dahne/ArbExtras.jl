@@ -1,58 +1,61 @@
 """
-    refine_root(f, root::Arb; df, atol, rtol, min_iterations, max_iterations, strict)
-    refine_root(f::ArbPoly, root::Arb; df, atol, rtol, min_iterations, max_iterations, strict)
+    refine_root(f, root::Arb; df, atol, rtol, min_iterations, max_iterations, sig_imp_proved, sig_imp_unproved, strict, verbose)
+    refine_root(f::ArbPoly, root::Arb; ...)
 
 Refine the given root of the function `f`.
 
-Given a ball `root` containing a unique root of the function `f` it
-refines the enclosure of the root using successive interval Newton
-iterations. The method can only handle simple roots contained in the
-interior of the enclosure and to work the derivative must be non-zero
-on the whole enclosure.
+Given a ball `root` containing a unique root of the function `f`, this
+method refines the enclosure of the root using successive interval
+Newton iterations. The method can only handle simple roots contained
+in the interior of the enclosure, and requires the derivative to be
+non-zero on the entire enclosure.
 
 The function `f` can be either an `ArbPoly` or a regular function. By
-default the derivative is computed by differentiating the polynomial,
-in the case of `ArbPoly`, or using `ArbSeries`, in the case of a
-regular function. Alternatively the keyword argument `df` can be set
-to a function for computing the derivative.
+default, the derivative is computed by differentiating the polynomial
+in the case of `ArbPoly`, or by using `ArbSeries` in the case of a
+regular function. Alternatively, the keyword argument `df` can be set
+to a custom function for computing the derivative.
 
-At each iteration it checks if the required tolerance is met according
+At each iteration, it checks if the required tolerance is met according
 to [`check_tolerance`](@ref). The default tolerances are `atol = 0`
 and `rtol = 4eps(one(root))`.
 
-If the absolute error does not improve by at least a factor 1.5
-between two iterations then it stops early since it's unlikely that
-further iterations would improve the result much. This can for example
-happen when the function is computed with too low precision. This
-check is only done if `min_iterations` have been performed, this is to
-avoid stopping early due to slow convergence in the beginning. To
-avoid this check entirely `min_iterations` can be put to the same as
-`max_iterations`.
+If the absolute error does not improve significantly between two
+iterations, it stops early, since further iterations are unlikely to
+yield substantial improvements. This can happen, for example, when the
+function is computed with too low precision. What constitutes a
+significant improvement is determined by `sig_imp_proved` if the root
+has been proved to exist, and `sig_imp_unproved` otherwise. The
+default values are `sig_imp_proved = Mag(1.25)` and `sig_imp_unproved
+= Mag(1)`. This check is only performed if at least `min_iterations`
+have been completed; this avoids stopping early due to slow
+convergence in the beginning. To bypass this check entirely, set
+`min_iterations` equal to `max_iterations` (the default is `1`).
 
-If `strict = true` then only return an enclosure which has been proved
-to contain a unique root contained in the original enclosure, if it
-could not prove that this is the case it returns `NaN`. If `strict =
-false` it will return an enclosure in all cases, this enclosure is
-only valid if `root` indeed contains a unique root and the returned
-enclosure could just be the starting enclosure `root` itself. This is
-useful if you know that `root` contains a unique root and don't want
-to worry about this method failing.
+If `strict = true`, it will only return an enclosure that has been
+proven to contain a unique root within the original enclosure; if it
+cannot prove this, it returns `NaN`. If `strict = false`, it will
+return an enclosure in all cases. This enclosure is only valid if
+`root` indeed contains a unique root, and the returned enclosure may
+simply be the starting enclosure `root` itself. This is useful if you
+already know that `root` contains a unique root and don't want to
+worry about the proof step failing.
 
-If any iteration gives `NaN` as a result then it returns the enclosure
-from the previous iteration, possibly just the starting enclosure.
-This is unless `strict = true` and it has not been able to prove that
-there is a root, in which case `NaN` is returned.
+If any iteration results in `NaN`, the method returns the enclosure
+from the previous iteration (which could be the starting enclosure).
+However, if `strict = true` and the existence of a root has not been
+proven, it will return `NaN` instead.
 
-If `verbose = true` then print the enclosure at each iteration and
-some more information in the end.
+If `verbose = true`, it prints the enclosure at each iteration and
+provides additional summary information at the end.
 
-In rare cases when `strict = false` and the original enclosure does in
-fact not contain a root the method could converge to a potential root
-just outside the original enclosure. The reason this might happen is
-that when the intersection of two balls is computed the enclosure is
-typically slightly larger than the true intersection. This is not an
-issue if `strict = false` nor if the original enclosure does contain a
-root.
+In rare cases where `strict = false` and the original enclosure does
+not actually contain a root, the method could converge to a potential
+root just outside the original enclosure. This happens because
+computing the intersection of two balls typically results in an
+enclosure slightly larger than the true intersection. This is not an
+issue if `strict = true` or if the original enclosure does indeed
+contain a root.
 """
 function refine_root(
     f,
@@ -62,6 +65,8 @@ function refine_root(
     rtol = 4eps(one(root)),
     min_iterations = 1,
     max_iterations = 20,
+    sig_imp_proved::Mag = Mag(1.25),
+    sig_imp_unproved::Mag = one(Mag),
     strict = true,
     verbose = false,
 )
@@ -69,15 +74,30 @@ function refine_root(
     root = copy(root)
     mid = midpoint(Arb, root)
 
-    verbose && @info "enclosure: $root"
+    verbose && @info "Starting enclosure: $root"
 
-    error_previous = radius(root)
+    err_previous = radius(root)
     isproved = false
     for i = 1:max_iterations
         # Compute new enclosure
         y = f(mid)
         dy = df(root)
         new_root = mid - y / dy
+
+        if !isfinite(new_root)
+            verbose && !isfinite(y) && @warn "Non-finite enclosure of y"
+            verbose && !isfinite(dy) && @warn "Non-finite enclosure of dy"
+            break
+        end
+
+        if !Arblib.overlaps(root, new_root)
+            if isproved
+                error("new enclosure doesn't overlap proved root - f must be wrong.")
+            else
+                verbose && @warn "New enclosure doesn't overlap root"
+                break
+            end
+        end
 
         # Note that since Arblib.intersection! only returns an
         # enclosure of the result it's not enough to check that the
@@ -87,31 +107,35 @@ function refine_root(
         # in that case we are not guaranteed that the root is
         # contained in the original enclosure, only in the previous
         # one.
-        isproved |= Arblib.contains_interior(original_root, new_root)
-
-        if isnan(new_root) || !Arblib.overlaps(root, new_root)
-            break
+        if !isproved && Arblib.contains_interior(original_root, new_root)
+            verbose && @info "Proved root"
+            isproved = true
         end
 
         Arblib.intersection!(root, root, new_root)
-        verbose && @info "enclosure: $root"
+        verbose && @info "Enclosure: $root"
 
         # If the result satisfies the required tolerance - break
-        if check_tolerance(root; atol, rtol)
-            verbose && @info "tolerance satisfied"
+        if isproved && check_tolerance(root; atol, rtol)
+            verbose && @info "Tolerance satisfied"
             break
         end
 
-        # If the result did not improve compared to the last iteration
-        # and we have performed the minimum number of iterations -
-        # break
-        error = radius(root)
-        if i >= min_iterations && 1.5error > error_previous
-            verbose &&
-                @info "diameter only improved from $error_previous to $error - stopping early"
-            break
+        # If the result did not improve meaningfully compared to the
+        # last iteration and we have performed the minimum number of
+        # iterations - break. If the root is not yet proved we are
+        # more restrictive with breaking early.
+        err = radius(root)
+        if i >= min_iterations
+            err_scaled = isproved ? sig_imp_proved * err : sig_imp_unproved * err
+
+            if err_scaled >= err_previous
+                verbose &&
+                    @info "Radius only improved from $err_previous to $err - stopping early"
+                break
+            end
         end
-        error_previous = error
+        err_previous = err
 
         # Update midpoint
         Arblib.set!(mid, Arblib.midref(root))
