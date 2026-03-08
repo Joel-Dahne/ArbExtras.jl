@@ -14,11 +14,11 @@ jobs:
     steps:
       - uses: julia-actions/setup-julia@latest
         with:
-          version: '^1.4'
+          version: '1'
       - uses: actions/checkout@v2
       - name: Install JuliaFormatter and format
         run: |
-          julia  -e 'using Pkg; Pkg.add(PackageSpec(name="JuliaFormatter", version="0.22.10"))'
+          julia  -e 'using Pkg; Pkg.add(PackageSpec(name="JuliaFormatter", version="2.3.0"))'
           julia  -e 'using JuliaFormatter; format(["./src", "./test"], verbose=true)'
       - name: Format check
         run: |

@@ -226,7 +226,7 @@
             )
             @test length(found) == 2^(depth = 10 - 1)
             @test !any(flags)
-            @test all(found[i][2] == found[i+1][1] for i = 1:length(found)-1)
+            @test all(found[i][2] == found[i+1][1] for i = 1:(length(found)-1))
         end
 
         @testset "ArbPoly" begin
@@ -259,7 +259,7 @@
             )
             @test length(found) == 2^(depth = 10 - 1)
             @test !any(flags)
-            @test all(found[i][2] == found[i+1][1] for i = 1:length(found)-1)
+            @test all(found[i][2] == found[i+1][1] for i = 1:(length(found)-1))
         end
     end
 end
