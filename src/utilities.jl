@@ -134,7 +134,7 @@ function bisect_interval_recursive(
     res[1] = (a, b)
 
     @inbounds for i = 1:depth
-        for j in reverse(1:2^(i-1))
+        for j in reverse(1:(2^(i-1)))
             a, b = res[j]
 
             if log_midpoint
