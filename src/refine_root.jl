@@ -150,45 +150,43 @@ function refine_root(
 end
 
 """
-    refine_root_bisection(f, root::Arb; atol, rtol, max_iterations, strict, verbose)
+    refine_root_bisection(f, a::Arf, b::Arf; atol, rtol, max_iterations, strict, verbose)
 
-Refine the root of the function `f` on the interval `[a, b]` using
-bisection.
+Refine a root of the continuous function `f` on the interval `[a, b]`
+using the bisection method.
 
-The function `f` is assumed to be continuous on the interval `[a, b]`
-and `f(a)` and `f(b)` should have different signs.
+The function `f` must be continuous on the interval `[a, b]`, and
+`f(a)` and `f(b)` must have opposing signs.
 
-It iteratively bisects the interval and determines which subinterval
-to keep by checking the sign of `f` at the midpoint. It stops either
-when the required tolerance is met according to
-[`check_tolerance`](@ref), it has reached the maximum number of
-iterations, it can't determine the sign of the midpoint or the
-midpoint is equal to one of the endpoints (meaning that we have
-bisected as much as possible at the given precision).
+The algorithm iteratively bisects the interval, determining which
+subinterval to keep by evaluating the sign of `f` at the midpoint. The
+iteration terminates when any of the following conditions are met:
+- The required tolerance is achieved (via [`check_tolerance`](@ref)).
+- The maximum number of iterations is reached.
+- The sign of the midpoint cannot be determined.
+- The midpoint equals one of the endpoints (indicating maximum
+  possible bisection at the current precision).
 
-If the zero lies exactly at or very close to one of the bisection
-point it can fail to determine the sign there. We avoid this by in
-that case instead trying to bisect at a point between the left
-endpoint of the interval and the midpoint, if that also fails it
-stops.
+If the true root lies exactly at or very close to a bisection point,
+the method may fail to determine the sign. To mitigate this, the
+algorithm will attempt to bisect at a new point halfway between the
+left endpoint and the original midpoint. If this second attempt also
+fails, the algorithm stops.
 
-When possible [`refine_root`](@ref) should be used instead since it
-converges much faster. This method is useful when the derivative is
-not available, i.e. evaluation with `ArbSeries` is not possible, or as
-a preprocessor for [`refine_root`](@ref) if the original enclosure of
-the root gives an enclosure on the derivative which contains zero.
+Whenever possible, [`refine_root`](@ref) should be preferred, as it
+converges much faster. The bisection method is primarily useful when
+the derivative is unavailable (e.g., evaluation via `ArbSeries` is
+impossible), or as a preprocessor for [`refine_root`](@ref) when the
+derivative's enclosure over the initial interval contains zero.
 
-If `strict = true` return `NaN` if the signs of `f(a)` and `f(b)`
-don't differ. In this case a finite result proves that there is a root
-of `f` on the interval, assuming that `f` is continuous there, but it
-says nothing about the uniqueness.
+If `strict = true`, the function returns `NaN` if the signs of `f(a)`
+and `f(b)` do not differ. Under strict mode, returning a finite
+interval proves the existence of at least one root within that
+interval (assuming `f` is continuous), though it does not guarantee
+uniqueness.
 
-If `verbose = true` then print the enclosure at each iteration and
-some more information in the end.
-
-- **IMPROVE:** Reduce the number of allocations.
-- **IMPROVE:** Handle the case when the sign at the midpoint can't be
-  determined better by using a perturbation of the midpoint.
+If `verbose = true`, the enclosure is printed at each iteration, along
+with summary information at the end.
 """
 function refine_root_bisection(
     f,
@@ -256,7 +254,7 @@ function refine_root_bisection(
             sign_b = sign_mid
         end
 
-        root = Arb((a, b))
+        Arblib.set_interval!(root, a, b)
         verbose && @info "iteration $iteration: $root"
     end
 
