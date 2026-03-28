@@ -2,15 +2,14 @@
     _current_lower_upper_bound(minormax, low, upp, values_low, values_upp, values)
 
 Returns a lower and upper bound of the extremum given that `low` and
-`upp` and lower and upper bounds of the extremum and so are all values
-in `values_low` and `Values_upp` respectively. It determines
+`upp` are lower and upper bounds of the extremum and so are all values
+in `values_low` and `values_upp` respectively. It determines
 **either** the minimum or the maximum depending on if `minormax = min`
 or `minormax = max`.
 
 This is mainly an internal function which implements behaviour which
 is common for [`extrema_enclosure`](@ref), [`minimum_enclosure`](@ref)
 and [`maximum_enclosure`](@ref).
-
 """
 function _current_lower_upper_bound(
     minormax::Union{typeof(min),typeof(max)},
@@ -53,7 +52,7 @@ function _current_lower_upper_bound(
 end
 
 """
-    extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, lbound_tol, ubound_tol, abs_value, log_bisection, point_value_min, point_value_max, depth_start, maxevals, depth, threaded, verbose)
+    extrema_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, lbound_tol, ubound_tol, abs_value, log_bisection, point_value_min, point_value_max, depth_start, maxevals, depth, threaded, verbose, logging)
 
 Compute both the minimum and maximum of the function `f` on the
 interval `[a, b]` and return them as a 2-tuple.
@@ -84,7 +83,7 @@ value, then you don't need to bisect if the current enclosure is good
 enough. See also [`bounded_by`](@ref) if you only need to prove that
 `f` is bounded by some value.
 
-If `abs_value = true` the compute the extrema of `abs(f(x))` on the
+If `abs_value = true` then compute the extrema of `abs(f(x))` on the
 interval `[a, b]`. For the computation of the maximum this is mostly
 the same, only difference is that we have to take the absolute value
 of the evaluations. For the minimum we have to take into account that
@@ -94,14 +93,14 @@ If `log_bisection = true` then the intervals are bisected in a
 logarithmic scale, see [`bisect_interval`](@ref) for details.
 
 The arguments `point_value_min` and `point_value_max` can optionally
-be set to a a priori upper or lower bounds of the min and max
+be set to an a priori upper or lower bounds of the min and max
 respectively. Typically this is computed by evaluating `f` on some
 (possibly well chosen) points before calling this method and taking
 the minimum and maximum of the evaluations respectively. This can
 allow the method to quicker discard subintervals where the extrema
 could not possibly be located.
 
-The argument `depth_start` bisect the interval using
+The argument `depth_start` bisects the interval using
 [`bisect_interval_recursive`](@ref) before starting to compute the
 extrema. This can be useful if it is known beforehand that a certain
 number of bisections will be necessary before the enclosures get good
@@ -118,10 +117,18 @@ using [`Threads.@threads`](@ref).
 
 If `verbose = true` then output information about the process.
 
+The `logging` argument can be set to make the function return extra
+details about the computations. It should be set to either
+`Val(false)` (the default) for no logging, or `Val(true)` for logging
+enabled. If `logging = Val(true)` then the function returns three
+values, instead of the usual two. The last argument is a
+[`BisectionLogging`](@ref) struct, containing information about how
+the interval was bisected and the enclosures of the minimum and
+maximum on each subinterval.
+
 TODO: Currently this always computes both minimum and maximum on all
 subintervals. Change it so that it takes into account if the
 minimum/maximum could be located in the subinterval or not.
-
 """
 function extrema_enclosure(
     f,
@@ -141,14 +148,27 @@ function extrema_enclosure(
     depth::Integer = 20,
     threaded = false,
     verbose = false,
+    logging::Union{Val{false},Val{true}} = Val{false}(),
 )
     check_interval(a, b)
+
+    logger = if logging isa Val{true}
+        BisectionLogging{NTuple{2,Arb}}()
+    else
+        nothing
+    end
 
     if a == b
         res = f(Arb(a))
         abs_value && Arblib.abs!(res, res)
         abs_value && Arblib.nonnegative_part!(res, res)
-        return res, res
+        if logging isa Val{true}
+            push!(logger.intervals, (a, b))
+            push!(logger.data, (res, res))
+            return res, res, logger
+        else
+            return res, res
+        end
     end
 
     lbound_tol = convert(Arb, lbound_tol)
@@ -275,10 +295,18 @@ function extrema_enclosure(
                 end
             end
         end
-        intervals = bisect_intervals(intervals, to_split, log_midpoint = log_bisection)
+
+        if logging isa Val{true}
+            for i in eachindex(intervals)
+                if !to_split[i]
+                    push!(logger.intervals, intervals[i])
+                    push!(logger.data, (values_min[i], values_max[i]))
+                end
+            end
+        end
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
-              "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
+              "remaining intervals: $(lpad(sum(to_split) ÷ 2, 3)), " *
               "min: $(format_interval(min_current_low, min_current_upp)) " *
               "max: $(format_interval(max_current_low, max_current_upp))"
 
@@ -290,7 +318,7 @@ function extrema_enclosure(
                       "max: $(lpad(non_finite_max, 3))"
         end
 
-        isempty(intervals) && break
+        any(to_split) || break
 
         # Check if we have done the maximum number of function
         # evaluations or reached the maximum depth
@@ -300,10 +328,23 @@ function extrema_enclosure(
                     @info "reached maximum number of evaluations $evals >= $maxevals"
                 iterations >= depth - depth_start && @info "reached maximum depth $depth"
             end
+
+            if logging isa Val{true}
+                # Log intervals that were not included above
+                for i in eachindex(intervals)
+                    if to_split[i]
+                        push!(logger.intervals, intervals[i])
+                        push!(logger.data, (values_min[i], values_max[i]))
+                    end
+                end
+            end
+
             min_low, min_upp = min_current_low, min_current_upp
             max_low, max_upp = max_current_low, max_current_upp
             break
         end
+
+        intervals = bisect_intervals(intervals, to_split, log_midpoint = log_bisection)
     end
 
     res_min = Arb((min_low, min_upp))
@@ -312,16 +353,22 @@ function extrema_enclosure(
         Arblib.nonnegative_part!(res_min, res_min)
         Arblib.nonnegative_part!(res_max, res_max)
     end
-    return res_min, res_max
+    if logging isa Val{true}
+        sort_logger!(logger)
+        return res_min, res_max, logger
+    else
+        return res_min, res_max
+    end
 end
 
 """
-    minimum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, lbound_tol, abs_value, log_bisection, point_value_min, depth_start, maxevals, depth, threaded, verbose)
+    minimum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, lbound_tol, abs_value, log_bisection, point_value_min, depth_start, maxevals, depth, threaded, verbose, logging)
 
 Compute the minimum of the function `f` on the interval `[a, b]`.
 
-Takes the same arguments as [`extrema_polynomial`](@ref). The
-algorithm is also the same except that it only looks for the minimum.
+Takes the same arguments as [`extrema_enclosure`](@ref), except for
+`ubound_tol` and `point_value_max`. The algorithm is also the same
+except that it only looks for the minimum.
 """
 function minimum_enclosure(
     f,
@@ -339,14 +386,27 @@ function minimum_enclosure(
     depth::Integer = 20,
     threaded = false,
     verbose = false,
+    logging::Union{Val{false},Val{true}} = Val{false}(),
 )
     check_interval(a, b)
+
+    logger = if logging isa Val{true}
+        BisectionLogging{Arb}()
+    else
+        nothing
+    end
 
     if a == b
         res = f(Arb(a))
         abs_value && Arblib.abs!(res, res)
         abs_value && Arblib.nonnegative_part!(res, res)
-        return res
+        if logging isa Val{true}
+            push!(logger.intervals, (a, b))
+            push!(logger.data, res)
+            return res, logger
+        else
+            return res
+        end
     end
 
     lbound_tol = convert(Arb, lbound_tol)
@@ -444,10 +504,18 @@ function minimum_enclosure(
                 end
             end
         end
-        intervals = bisect_intervals(intervals, to_split, log_midpoint = log_bisection)
+
+        if logging isa Val{true}
+            for i in eachindex(intervals)
+                if !to_split[i]
+                    push!(logger.intervals, intervals[i])
+                    push!(logger.data, values[i])
+                end
+            end
+        end
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
-              "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
+              "remaining intervals: $(lpad(sum(to_split) ÷ 2, 3)), " *
               "minimum: $(format_interval(min_current_low, min_current_upp))"
 
         if verbose
@@ -455,7 +523,7 @@ function minimum_enclosure(
             non_finite > 0 && @info "non-finite intervals: $non_finite"
         end
 
-        isempty(intervals) && break
+        any(to_split) || break
 
         # Check if we have done the maximum number of function
         # evaluations or reached the maximum depth
@@ -465,23 +533,42 @@ function minimum_enclosure(
                     @info "reached maximum number of evaluations $evals >= $maxevals"
                 iterations >= depth - depth_start && @info "reached maximum depth $depth"
             end
+
+            if logging isa Val{true}
+                # Log intervals that were not included above
+                for i in eachindex(intervals)
+                    if to_split[i]
+                        push!(logger.intervals, intervals[i])
+                        push!(logger.data, values[i])
+                    end
+                end
+            end
+
             min_low, min_upp = min_current_low, min_current_upp
             break
         end
+
+        intervals = bisect_intervals(intervals, to_split, log_midpoint = log_bisection)
     end
 
     res = Arb((min_low, min_upp))
     abs_value && Arblib.nonnegative_part!(res, res)
-    return res
+    if logging isa Val{true}
+        sort_logger!(logger)
+        return res, logger
+    else
+        return res
+    end
 end
 
 """
-    maximum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, ubound_tol, abs_value, log_bisection, point_value_max, depth_start, maxevals, depth, threaded, verbose)
+    maximum_enclosure(f, a::Arf, b::Arf; degree, atol, rtol, ubound_tol, abs_value, log_bisection, point_value_max, depth_start, maxevals, depth, threaded, verbose, logging)
 
 Compute the maximum of the function `f` on the interval `[a, b]`.
 
-Takes the same arguments as [`extrema_polynomial`](@ref). The
-algorithm is also the same except that it only looks for the maximum.
+Takes the same arguments as [`extrema_enclosure`](@ref), except for
+`lbound_tol` and `point_value_min`. The algorithm is also the same
+except that it only looks for the maximum.
 """
 function maximum_enclosure(
     f,
@@ -499,13 +586,27 @@ function maximum_enclosure(
     depth::Integer = 20,
     threaded = false,
     verbose = false,
+    logging::Union{Val{false},Val{true}} = Val{false}(),
 )
     check_interval(a, b)
+
+    logger = if logging isa Val{true}
+        BisectionLogging{Arb}()
+    else
+        nothing
+    end
 
     if a == b
         res = f(Arb(a))
         abs_value && Arblib.abs!(res, res)
-        return res
+        abs_value && Arblib.nonnegative_part!(res, res)
+        if logging isa Val{true}
+            push!(logger.intervals, (a, b))
+            push!(logger.data, res)
+            return res, logger
+        else
+            return res
+        end
     end
 
     ubound_tol = convert(Arb, ubound_tol)
@@ -569,7 +670,7 @@ function maximum_enclosure(
         values_low = similar(values, Arf)
         values_upp = similar(values, Arf)
         for i in eachindex(values)
-            values_low[i], values_upp[i] = getinterval(Arf, values[i])
+            values_low[i], values_upp[i] = getinterval(values[i])
         end
 
         # Compute current lower and upper bound of maximum
@@ -603,10 +704,18 @@ function maximum_enclosure(
                 end
             end
         end
-        intervals = bisect_intervals(intervals, to_split, log_midpoint = log_bisection)
+
+        if logging isa Val{true}
+            for i in eachindex(intervals)
+                if !to_split[i]
+                    push!(logger.intervals, intervals[i])
+                    push!(logger.data, values[i])
+                end
+            end
+        end
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
-              "remaining intervals: $(lpad(length(intervals) ÷ 2, 3)), " *
+              "remaining intervals: $(lpad(sum(to_split) ÷ 2, 3)), " *
               "maximum: $(format_interval(max_current_low, max_current_upp))"
 
         if verbose
@@ -614,7 +723,7 @@ function maximum_enclosure(
             non_finite > 0 && @info "non-finite intervals: $non_finite"
         end
 
-        isempty(intervals) && break
+        any(to_split) || break
 
         # Check if we have done the maximum number of function
         # evaluations or reached the maximum depth
@@ -624,12 +733,30 @@ function maximum_enclosure(
                     @info "reached maximum number of evaluations $evals >= $maxevals"
                 iterations >= depth - depth_start && @info "reached maximum depth $depth"
             end
+
+            if logging isa Val{true}
+                # Log intervals that were not included above
+                for i in eachindex(intervals)
+                    if to_split[i]
+                        push!(logger.intervals, intervals[i])
+                        push!(logger.data, values[i])
+                    end
+                end
+            end
+
             max_low, max_upp = max_current_low, max_current_upp
             break
         end
+
+        intervals = bisect_intervals(intervals, to_split, log_midpoint = log_bisection)
     end
 
     res = Arb((max_low, max_upp))
     abs_value && Arblib.nonnegative_part!(res, res)
-    return res
+    if logging isa Val{true}
+        sort_logger!(logger)
+        return res, logger
+    else
+        return res
+    end
 end

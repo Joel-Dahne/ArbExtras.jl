@@ -4,6 +4,7 @@ using Arblib, SpecialFunctions
 
 include("temporary.jl")
 include("utilities.jl")
+include("BisectionLogging.jl")
 
 include("isolate_roots.jl")
 include("refine_root.jl")
