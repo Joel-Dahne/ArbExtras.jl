@@ -215,4 +215,57 @@
             verbose = true,
         )
     end
+
+    @testset "logging" begin
+        a = Arf(0)
+        b = Arf(1)
+        min1, max1, logger1 =
+            ArbExtras.extrema_enclosure(identity, a, b, degree = -1, logging = Val(true))
+        min2, logger2 =
+            ArbExtras.minimum_enclosure(identity, a, b, degree = -1, logging = Val(true))
+        max3, logger3 =
+            ArbExtras.maximum_enclosure(identity, a, b, degree = -1, logging = Val(true))
+
+
+        # Check that endpoints are sorted
+        @test issorted(getindex.(logger1.intervals, 1))
+        @test issorted(getindex.(logger1.intervals, 2))
+        @test issorted(getindex.(logger2.intervals, 1))
+        @test issorted(getindex.(logger2.intervals, 2))
+        @test issorted(getindex.(logger3.intervals, 1))
+        @test issorted(getindex.(logger3.intervals, 2))
+
+        # Check that all intervals are valid intervals
+        @test all(((a, b),) -> ArbExtras.check_interval(Bool, a, b), logger1.intervals)
+        @test all(((a, b),) -> ArbExtras.check_interval(Bool, a, b), logger2.intervals)
+        @test all(((a, b),) -> ArbExtras.check_interval(Bool, a, b), logger3.intervals)
+
+        # Check that first and last agree with endpoints
+        @test logger1.intervals[1][1] == a
+        @test logger1.intervals[end][2] == b
+        @test logger2.intervals[1][1] == a
+        @test logger2.intervals[end][2] == b
+        @test logger3.intervals[1][1] == a
+        @test logger3.intervals[end][2] == b
+
+        # Check that intervals have overlapping endpoints
+        @test getindex.(logger1.intervals, 2)[1:(end-1)] ==
+              getindex.(logger1.intervals, 1)[2:end]
+        @test getindex.(logger2.intervals, 2)[1:(end-1)] ==
+              getindex.(logger2.intervals, 1)[2:end]
+        @test getindex.(logger3.intervals, 2)[1:(end-1)] ==
+              getindex.(logger3.intervals, 1)[2:end]
+
+        # Check that bounds are not smaller/larger than final enclosure
+        @test all(!, min1 .> getindex.(logger1.data, 1))
+        @test all(!, max1 .< getindex.(logger1.data, 2))
+        @test all(!, min2 .> logger2.data)
+        @test all(!, max3 .< logger3.data)
+
+        # Check that bounds enclose final enclosure
+        @test Arblib.overlaps(min1, minimum(getindex.(logger1.data, 1)))
+        @test Arblib.overlaps(max1, maximum(getindex.(logger1.data, 2)))
+        @test Arblib.overlaps(min2, minimum(logger2.data))
+        @test Arblib.overlaps(max3, maximum(logger3.data))
+    end
 end
