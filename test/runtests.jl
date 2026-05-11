@@ -18,4 +18,6 @@ include("demo_problems.jl")
     include("special_functions.jl")
 
     include("integrate.jl")
+
+    include("fx_div_x.jl")
 end

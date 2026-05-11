@@ -21,6 +21,8 @@ include("special_functions.jl")
 
 include("integrate.jl")
 
+include("fx_div_x.jl")
+
 # Mark primary functions as public (only supported for Julia v1.11 and later)
 
 # Enclosing roots
@@ -53,5 +55,7 @@ include("integrate.jl")
 # temporary.jl
 @public iscpx
 @public compose_zero, compose_zero!
+# fx_div_x.jl
+@public fx_div_x
 
 end # module
