@@ -90,6 +90,8 @@ things:
   derivative of `f`, which is computed using `ArbSeries`. So it can be
   of use if there is no implementation of `f(::Acb)`, but there is one
   for `f(::ArbSeries)`.
+- `fx_div_x(f, x, order)` can be used to compute enclosures of `f(x) /
+  x^order` when this has a removable singularity at zero.
 - `SpecialFunctions.besselj(ν::Arb, z::ArbSeries)` and
   `SpecialFunctions.bessely(ν::Arb, z::ArbSeries)` for computing
   Taylor expansions of the Bessel functions.
