@@ -306,7 +306,7 @@ function extrema_enclosure(
         end
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
-              "remaining intervals: $(lpad(sum(to_split) ÷ 2, 3)), " *
+              "remaining intervals: $(lpad(sum(to_split), 3)), " *
               "min: $(format_interval(min_current_low, min_current_upp)) " *
               "max: $(format_interval(max_current_low, max_current_upp))"
 
@@ -314,7 +314,7 @@ function extrema_enclosure(
             non_finite_min = count(!isfinite, values_min)
             non_finite_max = count(!isfinite, values_max)
             (non_finite_min > 0 || non_finite_max > 0) &&
-                @info "non-finite intervals: min: $(lpad(non_finite_min, 3)) " *
+                @info "  non-finite intervals: min: $(lpad(non_finite_min, 3)) " *
                       "max: $(lpad(non_finite_max, 3))"
         end
 
@@ -515,12 +515,12 @@ function minimum_enclosure(
         end
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
-              "remaining intervals: $(lpad(sum(to_split) ÷ 2, 3)), " *
+              "remaining intervals: $(lpad(sum(to_split), 3)), " *
               "minimum: $(format_interval(min_current_low, min_current_upp))"
 
         if verbose
             non_finite = count(!isfinite, values)
-            non_finite > 0 && @info "non-finite intervals: $non_finite"
+            non_finite > 0 && @info "  non-finite intervals: $non_finite"
         end
 
         any(to_split) || break
@@ -715,12 +715,12 @@ function maximum_enclosure(
         end
 
         verbose && @info "iteration: $(lpad(iterations, 2)), " *
-              "remaining intervals: $(lpad(sum(to_split) ÷ 2, 3)), " *
+              "remaining intervals: $(lpad(sum(to_split), 3)), " *
               "maximum: $(format_interval(max_current_low, max_current_upp))"
 
         if verbose
             non_finite = count(!isfinite, values)
-            non_finite > 0 && @info "non-finite intervals: $non_finite"
+            non_finite > 0 && @info "  non-finite intervals: $non_finite"
         end
 
         any(to_split) || break
