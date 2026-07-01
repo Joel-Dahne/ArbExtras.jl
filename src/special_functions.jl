@@ -125,12 +125,16 @@ function _besseljy(
     return compose_zero!(res, res, z)
 end
 
-SpecialFunctions.besselj(ν::Arblib.ArbOrRef, z::Arblib.ArbSeries) =
-    _besseljy(Arblib.hypgeom_bessel_j!, ν, z)
+# Arblib 1.8.0 includes support for series expansion of besselj, so we
+# no longer want to overwrite it.
+if pkgversion(Arblib) < v"1.8.0"
+    SpecialFunctions.besselj(ν::Arblib.ArbOrRef, z::Arblib.ArbSeries) =
+        _besseljy(Arblib.hypgeom_bessel_j!, ν, z)
+    SpecialFunctions.besselj0(z::ArbSeries) = besselj(zero(Arb), z)
+    SpecialFunctions.besselj1(z::ArbSeries) = besselj(one(Arb), z)
+end
+
 SpecialFunctions.bessely(ν::Arblib.ArbOrRef, z::Arblib.ArbSeries) =
     _besseljy(Arblib.hypgeom_bessel_y!, ν, z)
-
-SpecialFunctions.besselj0(z::ArbSeries) = besselj(zero(Arb), z)
-SpecialFunctions.besselj1(z::ArbSeries) = besselj(one(Arb), z)
 SpecialFunctions.bessely0(z::ArbSeries) = bessely(zero(Arb), z)
 SpecialFunctions.bessely1(z::ArbSeries) = bessely(one(Arb), z)
