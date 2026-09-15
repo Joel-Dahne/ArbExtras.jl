@@ -99,15 +99,8 @@ function refine_root(
             end
         end
 
-        # Note that since Arblib.intersection! only returns an
-        # enclosure of the result it's not enough to check that the
-        # new enclosure is contained in the interior of previous
-        # enclosure. It could happen that the previous enclosure
-        # contains numbers not contained in the original enclosure and
-        # in that case we are not guaranteed that the root is
-        # contained in the original enclosure, only in the previous
-        # one.
-        if !isproved && Arblib.contains_interior(original_root, new_root)
+        # Check interval Newton condition for existence
+        if !isproved && Arblib.contains_interior(root, new_root)
             verbose && @info "Proved root"
             isproved = true
         end
@@ -141,9 +134,16 @@ function refine_root(
         Arblib.set!(mid, Arblib.midref(root))
     end
 
-    if strict && !isproved
-        verbose && @warn "could not prove root"
-        return Arblib.indeterminate!(root)
+    if strict
+        if !isproved
+            verbose && @warn "could not prove root"
+            return Arblib.indeterminate!(root)
+        elseif !Arblib.contains(original_root, root)
+            verbose && @warn "found root not contained in original enclosure"
+            return Arblib.indeterminate!(root)
+        else
+            return root
+        end
     else
         return root
     end

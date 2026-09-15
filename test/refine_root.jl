@@ -89,15 +89,24 @@
         # Root on endpoint of interval
         # Enclosure which has 1 as an endpoint
         enclosure = setball(Arb, 1.125, Arblib.set_ui_2exp!(Mag(), unsigned(1), -3))
-        @test isnan(ArbExtras.refine_root(sinpi, enclosure))
+        root = ArbExtras.refine_root(sinpi, enclosure)
+        @test isfinite(root)
+        @test Arblib.overlaps(root, enclosure)
+        @test Arblib.contains(root, 1)
         root = ArbExtras.refine_root(sinpi, enclosure, strict = false)
+        @test isfinite(root)
         @test Arblib.overlaps(root, enclosure)
         @test Arblib.contains(root, 1)
 
-        # Test that it doesn't find a root if the root is just outside the
-        # enclosure
+        # Test that it doesn't find a root if the root is just outside
+        # the enclosure if strict = true. But that this can happen if
+        # strict = false.
         @test !Arblib.contains(enclosure + Arb(1e-40), 1)
         @test isnan(ArbExtras.refine_root(sinpi, enclosure + Arb(1e-40)))
+        root = ArbExtras.refine_root(sinpi, enclosure + Arb(1e-40), strict = false)
+        @test isfinite(root)
+        @test Arblib.overlaps(root, enclosure)
+        @test Arblib.contains(root, 1)
 
         # Check max_iterations
 
